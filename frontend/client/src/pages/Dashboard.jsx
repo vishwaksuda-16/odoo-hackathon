@@ -1,4 +1,5 @@
 import React from "react";
+import Card from "../components/ui/Card";
 
 function Dashboard() {
     return (
@@ -14,41 +15,9 @@ function Dashboard() {
                     marginBottom: "24px",
                 }}
             >
-                <div
-                    style={{
-                        flex: 1,
-                        padding: "16px",
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #ddd",
-                    }}
-                >
-                    <strong>Active Fleet</strong>
-                    <p>0</p>
-                </div>
-
-                <div
-                    style={{
-                        flex: 1,
-                        padding: "16px",
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #ddd",
-                    }}
-                >
-                    <strong>Maintenance Alerts</strong>
-                    <p>0</p>
-                </div>
-
-                <div
-                    style={{
-                        flex: 1,
-                        padding: "16px",
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #ddd",
-                    }}
-                >
-                    <strong>Pending Cargo</strong>
-                    <p>0</p>
-                </div>
+                <Card title="Active Fleet" value="0" />
+                <Card title="Maintenance Alerts" value="0" />
+                <Card title="Pending Cargo" value="0" />
             </div>
 
             {/* Placeholder for table/content */}
