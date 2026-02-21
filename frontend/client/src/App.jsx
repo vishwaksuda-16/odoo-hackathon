@@ -1,11 +1,11 @@
 import React from "react";
 import Layout from "./components/layout/Layout";
+import Dashboard from "./pages/Dashboard";
 
 function App() {
   return (
     <Layout>
-      <h2>Dashboard</h2>
-      <p>Command Center (UI only)</p>
+      <Dashboard />
     </Layout>
   );
 }
