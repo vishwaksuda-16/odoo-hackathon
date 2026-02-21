@@ -2,7 +2,7 @@ import React from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
-function Layout({ children }) {
+function Layout({ children, setPage }) {
     return (
         <div
             style={{
@@ -12,19 +12,11 @@ function Layout({ children }) {
                 backgroundColor: "#fafafa",
             }}
         >
-            {/* Sidebar */}
-            <Sidebar />
+            <Sidebar setPage={setPage} />
 
-            {/* Main area */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                 <Topbar />
-                <div
-                    style={{
-                        padding: "24px",
-                        flex: 1,
-                        color: "#000",
-                    }}
-                >
+                <div style={{ padding: "24px", flex: 1, color: "#000" }}>
                     {children}
                 </div>
             </div>

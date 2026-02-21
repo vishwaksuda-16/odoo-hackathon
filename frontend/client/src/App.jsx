@@ -7,20 +7,7 @@ function App() {
   const [page, setPage] = useState("dashboard");
 
   return (
-    <Layout>
-      {/* Temporary Navigation (UI only) */}
-      <div style={{ marginBottom: "16px" }}>
-        <button onClick={() => setPage("dashboard")}>
-          Dashboard
-        </button>
-        <button
-          onClick={() => setPage("vehicles")}
-          style={{ marginLeft: "8px" }}
-        >
-          Vehicle Registry
-        </button>
-      </div>
-
+    <Layout setPage={setPage}>
       {page === "dashboard" && <Dashboard />}
       {page === "vehicles" && <Vehicles />}
     </Layout>
