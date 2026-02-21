@@ -1,15 +1,44 @@
-import React from "react";
+import React, { useState } from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { ToastContainer } from "../ui/Toast";
 
-function Layout({ children, setPage, currentPage, userName, role, toasts, dismissToast }) {
+function Layout({
+    children,
+    setPage,
+    currentPage,
+    userName,
+    role,
+    userRole,
+    allowedPages,
+    toasts,
+    dismissToast,
+    onLogout,
+    theme,
+    onToggleTheme,
+}) {
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+
     return (
         <div style={{ display: "flex", height: "100vh", width: "100vw", overflow: "hidden" }}>
-            <Sidebar setPage={setPage} currentPage={currentPage} />
+            <Sidebar
+                setPage={setPage}
+                currentPage={currentPage}
+                collapsed={sidebarCollapsed}
+                allowedPages={allowedPages}
+            />
 
             <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                <Topbar currentPage={currentPage} userName={userName} role={role} />
+                <Topbar
+                    currentPage={currentPage}
+                    userName={userName}
+                    role={role}
+                    onLogout={onLogout}
+                    theme={theme}
+                    onToggleTheme={onToggleTheme}
+                    sidebarCollapsed={sidebarCollapsed}
+                    onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
+                />
 
                 <main
                     id="main-content"
@@ -17,7 +46,7 @@ function Layout({ children, setPage, currentPage, userName, role, toasts, dismis
                         flex: 1,
                         overflowY: "auto",
                         padding: "24px",
-                        backgroundColor: "#f0f4f8",
+                        backgroundColor: "var(--color-bg)",
                     }}
                 >
                     {children}

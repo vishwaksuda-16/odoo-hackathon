@@ -1,65 +1,41 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useRef } from "react";
 
-/* ── Toast Component ── */
-function Toast({ id, type, message, onDismiss }) {
-    useEffect(() => {
-        const t = setTimeout(() => onDismiss(id), 4000);
-        return () => clearTimeout(t);
-    }, [id, onDismiss]);
+const TOAST_STYLES = {
+    success: { bg: "var(--color-success-bg)", border: "var(--color-success-border)", text: "#16a34a", icon: "✓" },
+    error: { bg: "var(--color-danger-bg)", border: "var(--color-danger-border)", text: "#dc2626", icon: "✕" },
+    warning: { bg: "var(--color-warning-bg)", border: "var(--color-warning-border)", text: "#b45309", icon: "⚠" },
+    info: { bg: "var(--color-info-bg)", border: "var(--color-info-border)", text: "#0284c7", icon: "ℹ" },
+};
 
-    const icons = {
-        success: "✓",
-        error: "✕",
-        warning: "⚠",
-        info: "ℹ",
-    };
-
-    const colors = {
-        success: { bg: "#f0fdf4", border: "#bbf7d0", text: "#15803d", icon: "#16a34a" },
-        error: { bg: "#fef2f2", border: "#fecaca", text: "#b91c1c", icon: "#dc2626" },
-        warning: { bg: "#fffbeb", border: "#fde68a", text: "#b45309", icon: "#d97706" },
-        info: { bg: "#f0f9ff", border: "#bae6fd", text: "#0369a1", icon: "#0284c7" },
-    };
-
-    const c = colors[type] || colors.info;
+function Toast({ message, type = "info", onDismiss }) {
+    const s = TOAST_STYLES[type] || TOAST_STYLES.info;
 
     return (
         <div
             role="alert"
-            aria-live="assertive"
             style={{
                 display: "flex",
-                alignItems: "flex-start",
+                alignItems: "center",
                 gap: "10px",
                 padding: "12px 16px",
-                background: c.bg,
-                border: `1px solid ${c.border}`,
+                background: s.bg,
+                border: `1px solid ${s.border}`,
                 borderRadius: "8px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                boxShadow: "var(--shadow-lg)",
                 minWidth: "300px",
                 maxWidth: "420px",
-                animation: "toast-in 200ms ease",
+                animation: "ff-toast-in 300ms ease",
             }}
         >
-            <span style={{ color: c.icon, fontWeight: 700, fontSize: "16px", lineHeight: "20px", flexShrink: 0 }}>
-                {icons[type]}
-            </span>
-            <p style={{ flex: 1, fontSize: "0.875rem", color: c.text, lineHeight: "1.5", margin: 0 }}>
-                {message}
-            </p>
+            <span style={{ fontWeight: 700, fontSize: "14px", color: s.text, flexShrink: 0 }}>{s.icon}</span>
+            <span style={{ flex: 1, fontSize: "0.875rem", color: s.text, lineHeight: 1.4 }}>{message}</span>
             <button
-                onClick={() => onDismiss(id)}
+                onClick={onDismiss}
                 aria-label="Dismiss notification"
                 style={{
-                    background: "none",
-                    border: "none",
-                    color: c.text,
-                    cursor: "pointer",
-                    fontSize: "18px",
-                    lineHeight: "1",
-                    padding: "0 2px",
-                    opacity: 0.6,
-                    flexShrink: 0,
+                    background: "none", border: "none", color: s.text,
+                    fontSize: "18px", cursor: "pointer", padding: "2px", lineHeight: 1,
+                    opacity: 0.6, flexShrink: 0,
                 }}
             >
                 ×
@@ -68,38 +44,39 @@ function Toast({ id, type, message, onDismiss }) {
     );
 }
 
-/* ── Toast Container ── */
-export function ToastContainer({ toasts, onDismiss }) {
+function ToastContainer({ toasts, onDismiss }) {
+    if (!toasts || toasts.length === 0) return null;
+
     return (
-        <>
-            <style>{`@keyframes toast-in { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }`}</style>
-            <div
-                aria-label="Notifications"
-                style={{
-                    position: "fixed",
-                    top: "72px",
-                    right: "20px",
-                    zIndex: 9999,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                }}
-            >
-                {toasts.map((t) => (
-                    <Toast key={t.id} {...t} onDismiss={onDismiss} />
-                ))}
-            </div>
-        </>
+        <div
+            aria-live="polite"
+            style={{
+                position: "fixed",
+                top: "72px",
+                right: "20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+                zIndex: 1000,
+            }}
+        >
+            {toasts.map((t) => (
+                <Toast key={t.id} message={t.message} type={t.type} onDismiss={() => onDismiss(t.id)} />
+            ))}
+        </div>
     );
 }
 
-/* ── useToast Hook ── */
-export function useToast() {
+function useToast() {
     const [toasts, setToasts] = useState([]);
+    const counterRef = useRef(0);
 
     const showToast = useCallback((message, type = "info") => {
-        const id = Date.now() + Math.random();
+        const id = ++counterRef.current;
         setToasts((prev) => [...prev, { id, message, type }]);
+        setTimeout(() => {
+            setToasts((prev) => prev.filter((t) => t.id !== id));
+        }, 4500);
     }, []);
 
     const dismissToast = useCallback((id) => {
@@ -108,3 +85,6 @@ export function useToast() {
 
     return { toasts, showToast, dismissToast };
 }
+
+export { Toast, ToastContainer, useToast };
+export default Toast;

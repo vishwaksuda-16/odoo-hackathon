@@ -1,59 +1,42 @@
 import React, { useState } from "react";
 import FormField from "../components/ui/FormField";
+import { authAPI } from "../lib/api";
 
-const ROLES = [
-    { value: "", label: "Select a role…" },
-    { value: "fleet_manager", label: "Fleet Manager" },
-    { value: "driver", label: "Driver" },
-    { value: "admin", label: "Administrator" },
-    { value: "analyst", label: "Operations Analyst" },
-];
-
-/* Demo credentials — UI-only auth simulation */
-const DEMO_USERS = [
-    { username: "admin", password: "admin123", role: "admin", name: "System Admin" },
-    { username: "manager", password: "fleet123", role: "fleet_manager", name: "Fleet Manager" },
-    { username: "driver", password: "drive123", role: "driver", name: "Driver" },
-];
-
-function Login({ onLogin, onGoRegister }) {
-    const [form, setForm] = useState({ username: "", password: "", role: "" });
+function Login({ onLogin, onGoRegister, showToast }) {
+    const [form, setForm] = useState({ login: "", password: "" });
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
 
     const set = (field, value) => {
         setForm((f) => ({ ...f, [field]: value }));
-        setErrors((e) => ({ ...e, [field]: "" }));
+        setErrors((e) => ({ ...e, [field]: "", auth: "" }));
     };
 
     const validate = () => {
         const errs = {};
-        if (!form.username.trim() || !form.password.trim() || !form.role) {
-            if (!form.username.trim()) errs.username = "Username is required.";
-            if (!form.password.trim()) errs.password = "Password is required.";
-            if (!form.role) errs.role = "Please select a role to continue.";
-            return errs;
-        }
+        if (!form.login.trim()) errs.login = "Username or email is required.";
+        if (!form.password.trim()) errs.password = "Password is required.";
         return errs;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const errs = validate();
         if (Object.keys(errs).length) { setErrors(errs); return; }
 
         setLoading(true);
-        setTimeout(() => {
-            const match = DEMO_USERS.find(
-                (u) => u.username === form.username && u.password === form.password
-            );
-            if (match) {
-                onLogin({ role: form.role, name: match.name, username: match.username });
+        try {
+            const data = await authAPI.login(form.login, form.password);
+            if (data.success) {
+                onLogin(data);
             } else {
-                setErrors({ auth: "Invalid username or password. Please try again." });
-                setLoading(false);
+                setErrors({ auth: data.message || "Login failed. Please try again." });
             }
-        }, 600);
+        } catch (err) {
+            setErrors({ auth: err.message || "Invalid username or password." });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -117,29 +100,16 @@ function Login({ onLogin, onGoRegister }) {
                         </div>
                     )}
 
-                    <FormField label="Role" required htmlFor="login-role" error={errors.role}>
-                        <select
-                            id="login-role"
-                            value={form.role}
-                            onChange={(e) => set("role", e.target.value)}
-                            className={errors.role ? "error-field" : ""}
-                            aria-required="true"
-                            aria-describedby={errors.role ? "login-role-err" : undefined}
-                        >
-                            {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                        </select>
-                    </FormField>
-
-                    <FormField label="Username" required htmlFor="login-username" error={errors.username}>
+                    <FormField label="Username or Email" required htmlFor="login-user" error={errors.login}>
                         <input
-                            id="login-username"
+                            id="login-user"
                             type="text"
-                            value={form.username}
-                            onChange={(e) => set("username", e.target.value)}
-                            placeholder="Enter your username"
+                            value={form.login}
+                            onChange={(e) => set("login", e.target.value)}
+                            placeholder="Enter username or email"
                             autoComplete="username"
                             aria-required="true"
-                            className={errors.username ? "error-field" : ""}
+                            className={errors.login ? "error-field" : ""}
                         />
                     </FormField>
 
@@ -156,17 +126,6 @@ function Login({ onLogin, onGoRegister }) {
                         />
                     </FormField>
 
-                    {/* Demo hint */}
-                    <div
-                        style={{
-                            background: "#f0f9ff", border: "1px solid #bae6fd",
-                            borderRadius: "6px", padding: "8px 12px", marginBottom: "18px",
-                            fontSize: "0.75rem", color: "#0369a1",
-                        }}
-                    >
-                        <strong>Demo:</strong> admin / admin123 &nbsp;|&nbsp; manager / fleet123 &nbsp;|&nbsp; driver / drive123
-                    </div>
-
                     <button
                         type="submit"
                         disabled={loading}
@@ -176,8 +135,10 @@ function Login({ onLogin, onGoRegister }) {
                             color: "#fff", border: "none", borderRadius: "8px",
                             fontSize: "0.9375rem", fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
                             transition: "background 150ms",
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
                         }}
                     >
+                        {loading && <span className="ff-spinner" style={{ width: "16px", height: "16px", borderWidth: "2px" }}></span>}
                         {loading ? "Signing in…" : "Sign In"}
                     </button>
 

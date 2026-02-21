@@ -1,7 +1,19 @@
-/* FleetFlow App Shell */
 #root {
   height: 100vh;
   width: 100vw;
   display: flex;
   overflow: hidden;
+}
+
+/* Toast entrance animation */
+@keyframes ff-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }

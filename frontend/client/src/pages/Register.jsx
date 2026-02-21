@@ -1,19 +1,20 @@
 import React, { useState } from "react";
 import FormField from "../components/ui/FormField";
+import { authAPI } from "../lib/api";
 
 const ROLES = [
     { value: "", label: "Select a role…" },
-    { value: "fleet_manager", label: "Fleet Manager" },
-    { value: "driver", label: "Driver" },
-    { value: "admin", label: "Administrator" },
-    { value: "analyst", label: "Operations Analyst" },
+    { value: "manager", label: "Fleet Manager" },
+    { value: "dispatcher", label: "Dispatcher" },
+    { value: "safety_officer", label: "Safety Officer" },
+    { value: "analyst", label: "Financial Analyst" },
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function Register({ onLogin, onGoLogin }) {
+function Register({ onRegister, onGoLogin, showToast }) {
     const [form, setForm] = useState({
-        fullName: "", role: "", username: "", email: "", password: "", confirm: "",
+        role: "", username: "", email: "", password: "", confirm: "",
     });
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
@@ -25,7 +26,6 @@ function Register({ onLogin, onGoLogin }) {
 
     const validate = () => {
         const errs = {};
-        if (!form.fullName.trim()) errs.fullName = "Full name is required.";
         if (!form.role) errs.role = "Please select a role.";
         if (!form.username.trim()) errs.username = "Username is required.";
         if (!form.email.trim()) errs.email = "Email address is required.";
@@ -37,16 +37,30 @@ function Register({ onLogin, onGoLogin }) {
         return errs;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const errs = validate();
         if (Object.keys(errs).length) { setErrors(errs); return; }
 
         setLoading(true);
-        setTimeout(() => {
-            // Simulate registration success
-            onLogin({ role: form.role, name: form.fullName, username: form.username });
-        }, 700);
+        try {
+            const data = await authAPI.register(
+                form.username,
+                form.email,
+                form.password,
+                form.confirm,
+                form.role
+            );
+            if (data.success) {
+                onRegister(data);
+            } else {
+                setErrors({ general: data.message || "Registration failed. Please try again." });
+            }
+        } catch (err) {
+            setErrors({ general: err.message || "Registration failed. Please try again." });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -95,26 +109,21 @@ function Register({ onLogin, onGoLogin }) {
                         </div>
                     )}
 
-                    {/* Two columns: name + role */}
+                    <FormField label="Role" required htmlFor="reg-role" error={errors.role}>
+                        <select id="reg-role" value={form.role} onChange={(e) => set("role", e.target.value)} className={errors.role ? "error-field" : ""}>
+                            {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                        </select>
+                    </FormField>
+
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-                        <FormField label="Full Name" required htmlFor="reg-name" error={errors.fullName}>
-                            <input id="reg-name" type="text" value={form.fullName} onChange={(e) => set("fullName", e.target.value)} placeholder="Jane Smith" className={errors.fullName ? "error-field" : ""} />
+                        <FormField label="Username" required htmlFor="reg-username" error={errors.username}>
+                            <input id="reg-username" type="text" value={form.username} onChange={(e) => set("username", e.target.value)} placeholder="john_fleet" autoComplete="username" className={errors.username ? "error-field" : ""} />
                         </FormField>
 
-                        <FormField label="Role" required htmlFor="reg-role" error={errors.role}>
-                            <select id="reg-role" value={form.role} onChange={(e) => set("role", e.target.value)} className={errors.role ? "error-field" : ""}>
-                                {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                            </select>
+                        <FormField label="Email Address" required htmlFor="reg-email" error={errors.email}>
+                            <input id="reg-email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="you@fleetflow.io" autoComplete="email" className={errors.email ? "error-field" : ""} />
                         </FormField>
                     </div>
-
-                    <FormField label="Username" required htmlFor="reg-username" error={errors.username}>
-                        <input id="reg-username" type="text" value={form.username} onChange={(e) => set("username", e.target.value)} placeholder="john_fleet" autoComplete="username" className={errors.username ? "error-field" : ""} />
-                    </FormField>
-
-                    <FormField label="Email Address" required htmlFor="reg-email" error={errors.email}>
-                        <input id="reg-email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="you@fleetflow.io" autoComplete="email" className={errors.email ? "error-field" : ""} />
-                    </FormField>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
                         <FormField label="Password" required htmlFor="reg-password" error={errors.password}>
@@ -135,8 +144,10 @@ function Register({ onLogin, onGoLogin }) {
                             color: "#fff", border: "none", borderRadius: "8px",
                             fontSize: "0.9375rem", fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
                             marginTop: "4px",
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
                         }}
                     >
+                        {loading && <span className="ff-spinner" style={{ width: "16px", height: "16px", borderWidth: "2px" }}></span>}
                         {loading ? "Creating account…" : "Create Account"}
                     </button>
 

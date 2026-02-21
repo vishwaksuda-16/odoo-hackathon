@@ -1,38 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Card from "../components/ui/Card";
 import PageHeader from "../components/ui/PageHeader";
-
-const MONTHLY_DATA = [
-    { month: "January", revenue: 840000, fuel: 184000, maintenance: 42000 },
-    { month: "February", revenue: 910000, fuel: 196000, maintenance: 35000 },
-    { month: "March", revenue: 780000, fuel: 201000, maintenance: 58000 },
-    { month: "April", revenue: 1020000, fuel: 188000, maintenance: 31000 },
-    { month: "May", revenue: 960000, fuel: 175000, maintenance: 46000 },
-    { month: "June", revenue: 1150000, fuel: 210000, maintenance: 52000 },
-];
-
-const VEHICLE_KPI = [
-    { vehicle: "Truck A – MH12AB1234", trips: 42, kmDriven: 18400, fuelUsed: 2208, revenue: 520000, cost: 98000 },
-    { vehicle: "Van B – MH14CD5678", trips: 31, kmDriven: 8200, fuelUsed: 820, revenue: 210000, cost: 38000 },
-    { vehicle: "Truck C – MH01EF9012", trips: 28, kmDriven: 22100, fuelUsed: 3094, revenue: 490000, cost: 140000 },
-];
+import { analyticsAPI } from "../lib/api";
 
 function BarChart({ data }) {
-    const maxVal = Math.max(...data.map((d) => d.revenue));
+    if (!data || data.length === 0) return <div style={{ textAlign: "center", color: "var(--color-text-muted)", padding: "40px" }}>No data available</div>;
+    const maxVal = Math.max(...data.map((d) => Number(d.revenue || d.total_fuel || 0)), 1);
     return (
         <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: "140px", padding: "0 8px" }}>
-            {data.map((d) => {
-                const netProfit = d.revenue - d.fuel - d.maintenance;
-                const profitColor = netProfit >= 0 ? "#16a34a" : "#dc2626";
+            {data.map((d, i) => {
+                const rev = Number(d.revenue || d.total_fuel || 0);
+                const fuel = Number(d.fuel_cost || d.total_fuel || 0);
                 return (
-                    <div key={d.month} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+                    <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
                         <div style={{ width: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "110px", gap: "2px" }}>
-                            <div title={`Revenue: ₹${d.revenue.toLocaleString()}`}
-                                style={{ width: "100%", height: `${(d.revenue / maxVal) * 100}px`, background: "#1d4ed8", borderRadius: "3px 3px 0 0", minHeight: "4px" }} />
-                            <div title={`Fuel: ₹${d.fuel.toLocaleString()}`}
-                                style={{ width: "100%", height: `${(d.fuel / maxVal) * 100}px`, background: "#f59e0b", borderRadius: "3px 3px 0 0", minHeight: "3px" }} />
+                            <div title={`Revenue: ₹${rev.toLocaleString()}`} style={{ width: "100%", height: `${(rev / maxVal) * 100}px`, background: "var(--color-primary)", borderRadius: "3px 3px 0 0", minHeight: "4px" }} />
+                            <div title={`Fuel: ₹${fuel.toLocaleString()}`} style={{ width: "100%", height: `${(fuel / maxVal) * 100}px`, background: "#f59e0b", borderRadius: "3px 3px 0 0", minHeight: "3px" }} />
                         </div>
-                        <span style={{ fontSize: "0.6rem", color: "#94a3b8", textAlign: "center" }}>{d.month.slice(0, 3)}</span>
+                        <span style={{ fontSize: "0.6rem", color: "var(--color-text-muted)", textAlign: "center" }}>{d.month_name ? d.month_name.slice(0, 3) : `M${d.month || i + 1}`}</span>
                     </div>
                 );
             })}
@@ -40,135 +25,164 @@ function BarChart({ data }) {
     );
 }
 
-function Analytics({ showToast }) {
+function Analytics({ showToast, role }) {
+    const [loading, setLoading] = useState(true);
+    const [monthly, setMonthly] = useState([]);
+    const [vehicleROI, setVehicleROI] = useState([]);
+    const [ytdSummary, setYtdSummary] = useState({});
+    const [report, setReport] = useState([]);
     const [search, setSearch] = useState("");
     const [sortBy, setSortBy] = useState("");
 
-    const totals = MONTHLY_DATA.reduce((acc, d) => ({
-        revenue: acc.revenue + d.revenue,
-        fuel: acc.fuel + d.fuel,
-        maintenance: acc.maintenance + d.maintenance,
-    }), { revenue: 0, fuel: 0, maintenance: 0 });
-    const totalNet = totals.revenue - totals.fuel - totals.maintenance;
-    const avgFuelEff = VEHICLE_KPI.reduce((s, v) => s + (v.kmDriven / v.fuelUsed), 0) / VEHICLE_KPI.length;
-    const avgROI = VEHICLE_KPI.reduce((s, v) => s + ((v.revenue - v.cost) / v.cost) * 100, 0) / VEHICLE_KPI.length;
+    const loadData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [financialRes, reportRes] = await Promise.all([
+                analyticsAPI.monthlyFinancial(new Date().getFullYear()),
+                analyticsAPI.report(),
+            ]);
+            setMonthly(financialRes.data?.monthly_breakdown || []);
+            setVehicleROI(financialRes.data?.vehicle_roi || []);
+            setYtdSummary(financialRes.data?.ytd_summary || {});
+            setReport(reportRes.report || []);
+        } catch (err) {
+            showToast("Failed to load analytics data: " + err.message, "error");
+        } finally {
+            setLoading(false);
+        }
+    }, [showToast]);
 
-    let dispMonthly = MONTHLY_DATA.map((d) => ({ ...d, net: d.revenue - d.fuel - d.maintenance }));
-    if (sortBy === "revenue") dispMonthly = [...dispMonthly].sort((a, b) => b.revenue - a.revenue);
-    if (sortBy === "net") dispMonthly = [...dispMonthly].sort((a, b) => b.net - a.net);
-    if (search) dispMonthly = dispMonthly.filter((d) => d.month.toLowerCase().includes(search.toLowerCase()));
+    useEffect(() => { loadData(); }, [loadData]);
+
+    // Calculate KPIs from report data
+    const avgFuelEff = report.length > 0
+        ? report.reduce((s, v) => s + Number(v.km_per_liter || 0), 0) / report.filter((v) => v.km_per_liter).length
+        : 0;
+    const avgROI = report.length > 0
+        ? report.reduce((s, v) => s + Number(v.roi || 0), 0) / report.filter((v) => v.roi !== null).length
+        : 0;
+    const ytdFuel = Number(ytdSummary.ytd_fuel_cost || 0);
+
+    let dispMonthly = [...monthly];
+    if (search) dispMonthly = dispMonthly.filter((d) => (d.month_name || "").toLowerCase().includes(search.toLowerCase()));
+    if (sortBy === "revenue") dispMonthly = [...dispMonthly].sort((a, b) => Number(b.revenue || 0) - Number(a.revenue || 0));
+
+    if (loading) {
+        return (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "300px", gap: "10px" }}>
+                <span className="ff-spinner"></span>
+                <span style={{ color: "var(--color-text-muted)" }}>Loading analytics…</span>
+            </div>
+        );
+    }
 
     return (
         <div>
             <PageHeader
                 title="Operational Analytics"
                 search={search} onSearch={setSearch} searchPlaceholder="Filter by month…"
-                sortOptions={[{ label: "Revenue (Highest)", value: "revenue" }, { label: "Net Profit", value: "net" }]}
+                sortOptions={[{ label: "Revenue (Highest)", value: "revenue" }]}
                 sortValue={sortBy} onSort={setSortBy}
             />
 
             {/* KPI Cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
-                <Card title="Avg. Fuel Efficiency" value={`${avgFuelEff.toFixed(1)} km/L`} subtitle="across all vehicles" icon="⛽" color="#0284c7" trend={3} />
-                <Card title="Fleet ROI" value={`${avgROI.toFixed(1)}%`} subtitle="revenue vs. cost" icon="📈" color="#16a34a" trend={8} />
-                <Card title="6-Month Fuel Cost" value={`₹${(totals.fuel / 100000).toFixed(2)}L`} subtitle={`₹${totals.fuel.toLocaleString()} total`} icon="🛢️" color="#d97706" trend={-2} />
+                <Card title="Avg. Fuel Efficiency" value={avgFuelEff > 0 ? `${avgFuelEff.toFixed(1)} km/L` : "—"} subtitle="across all vehicles" icon="⛽" color="#0284c7" />
+                <Card title="Avg. Fleet ROI" value={avgROI ? `${(avgROI * 100).toFixed(1)}%` : "—"} subtitle="revenue vs. cost" icon="📈" color="#16a34a" />
+                <Card title="YTD Fuel Cost" value={`₹${(ytdFuel / 100000).toFixed(2)}L`} subtitle={`₹${ytdFuel.toLocaleString()} total`} icon="🛢️" color="#d97706" />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
                 {/* Chart */}
-                <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden" }}>
-                    <div style={{ padding: "14px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "10px", overflow: "hidden" }}>
+                    <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <h3 style={{ fontSize: "0.9375rem", fontWeight: 700 }}>Revenue vs. Fuel Cost</h3>
-                        <div style={{ display: "flex", gap: "12px", fontSize: "0.6875rem", color: "#475569" }}>
-                            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#1d4ed8", display: "inline-block" }} />Revenue</span>
+                        <div style={{ display: "flex", gap: "12px", fontSize: "0.6875rem", color: "var(--color-text-secondary)" }}>
+                            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "2px", background: "var(--color-primary)", display: "inline-block" }} />Revenue</span>
                             <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#f59e0b", display: "inline-block" }} />Fuel</span>
                         </div>
                     </div>
                     <div style={{ padding: "20px" }}>
-                        <BarChart data={MONTHLY_DATA} />
+                        <BarChart data={dispMonthly} />
                     </div>
                 </div>
 
-                {/* Vehicle KPI */}
-                <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden" }}>
-                    <div style={{ padding: "14px 20px", borderBottom: "1px solid #e2e8f0" }}>
-                        <h3 style={{ fontSize: "0.9375rem", fontWeight: 700 }}>Vehicle ROI Breakdown</h3>
+                {/* Vehicle ROI Breakdown */}
+                <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "10px", overflow: "hidden" }}>
+                    <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--color-border)" }}>
+                        <h3 style={{ fontSize: "0.9375rem", fontWeight: 700 }}>Vehicle Cost Breakdown</h3>
                     </div>
                     <div style={{ padding: "8px 0" }}>
-                        {VEHICLE_KPI.map((v, i) => {
-                            const roi = ((v.revenue - v.cost) / v.cost * 100).toFixed(1);
-                            const kmPerL = (v.kmDriven / v.fuelUsed).toFixed(1);
-                            return (
-                                <div key={i} style={{ padding: "12px 20px", borderBottom: i < VEHICLE_KPI.length - 1 ? "1px solid #f0f4f8" : "none" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-                                        <span style={{ fontSize: "0.8125rem", fontWeight: 600 }}>{v.vehicle}</span>
-                                        <span style={{ fontSize: "0.8125rem", fontWeight: 700, color: Number(roi) >= 0 ? "#16a34a" : "#dc2626" }}>ROI {roi}%</span>
+                        {report.length === 0 ? (
+                            <div style={{ padding: "32px 20px", textAlign: "center", color: "var(--color-text-muted)" }}>No vehicle data available.</div>
+                        ) : (
+                            report.slice(0, 5).map((v, i) => {
+                                const roi = v.roi ? (Number(v.roi) * 100).toFixed(1) : "—";
+                                const kmPerL = v.km_per_liter ? Number(v.km_per_liter).toFixed(1) : "–";
+                                const totalCost = Number(v.total_fuel_cost || 0) + Number(v.total_maint_cost || 0);
+                                return (
+                                    <div key={i} style={{ padding: "12px 20px", borderBottom: i < 4 ? "1px solid var(--color-border)" : "none" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                                            <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text-primary)" }}>{v.name_model}</span>
+                                            <span style={{ fontSize: "0.8125rem", fontWeight: 700, color: Number(roi) >= 0 ? "#16a34a" : "#dc2626" }}>
+                                                {roi !== "—" ? `ROI ${roi}%` : "—"}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: "flex", gap: "16px", fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
+                                            <span>Fuel Eff: <strong style={{ color: "var(--color-text-primary)" }}>{kmPerL} km/L</strong></span>
+                                            <span>Total Cost: <strong style={{ color: "var(--color-text-primary)" }}>₹{totalCost.toLocaleString()}</strong></span>
+                                        </div>
                                     </div>
-                                    <div style={{ display: "flex", gap: "16px", fontSize: "0.75rem", color: "#64748b" }}>
-                                        <span>Trips: <strong style={{ color: "#0f172a" }}>{v.trips}</strong></span>
-                                        <span>Fuel Eff: <strong style={{ color: "#0f172a" }}>{kmPerL} km/L</strong></span>
-                                        <span>Revenue: <strong style={{ color: "#0f172a" }}>₹{v.revenue.toLocaleString()}</strong></span>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Financial Summary Table */}
-            <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden" }}>
-                <div style={{ padding: "14px 20px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <h3 style={{ fontSize: "0.9375rem", fontWeight: 700 }}>Financial Summary</h3>
-                    <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>January – June 2024</span>
+            {/* Monthly Financial Summary */}
+            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "10px", overflow: "hidden" }}>
+                <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h3 style={{ fontSize: "0.9375rem", fontWeight: 700 }}>Monthly Financial Summary</h3>
+                    <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>{new Date().getFullYear()}</span>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Month</th>
-                            <th style={{ textAlign: "right" }}>Revenue (₹)</th>
-                            <th style={{ textAlign: "right" }}>Fuel Cost (₹)</th>
-                            <th style={{ textAlign: "right" }}>Maintenance (₹)</th>
-                            <th style={{ textAlign: "right" }}>Net Profit (₹)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {dispMonthly.map((d) => {
-                            const isPositive = d.net >= 0;
-                            return (
-                                <tr key={d.month}>
-                                    <td style={{ fontWeight: 500 }}>{d.month}</td>
-                                    <td style={{ textAlign: "right" }}>{d.revenue.toLocaleString()}</td>
-                                    <td style={{ textAlign: "right", color: "#dc2626" }}>{d.fuel.toLocaleString()}</td>
-                                    <td style={{ textAlign: "right", color: "#d97706" }}>{d.maintenance.toLocaleString()}</td>
-                                    <td style={{ textAlign: "right" }}>
-                                        <span style={{
-                                            fontWeight: 700,
-                                            color: isPositive ? "#16a34a" : "#dc2626",
-                                            background: isPositive ? "#f0fdf4" : "#fef2f2",
-                                            padding: "2px 8px", borderRadius: "4px",
-                                        }}>
-                                            {isPositive ? "+" : ""}{d.net.toLocaleString()}
-                                        </span>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                    <tfoot>
-                        <tr style={{ background: "#f8fafc", borderTop: "2px solid #e2e8f0" }}>
-                            <td style={{ fontWeight: 700, padding: "12px 14px" }}>6-Month Total</td>
-                            <td style={{ textAlign: "right", fontWeight: 700, padding: "12px 14px" }}>₹{totals.revenue.toLocaleString()}</td>
-                            <td style={{ textAlign: "right", fontWeight: 700, color: "#dc2626", padding: "12px 14px" }}>₹{totals.fuel.toLocaleString()}</td>
-                            <td style={{ textAlign: "right", fontWeight: 700, color: "#d97706", padding: "12px 14px" }}>₹{totals.maintenance.toLocaleString()}</td>
-                            <td style={{ textAlign: "right", padding: "12px 14px" }}>
-                                <span style={{ fontWeight: 800, fontSize: "1rem", color: totalNet >= 0 ? "#16a34a" : "#dc2626" }}>
-                                    {totalNet >= 0 ? "+" : ""}₹{totalNet.toLocaleString()}
-                                </span>
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
+                {dispMonthly.length === 0 ? (
+                    <div style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>No monthly data available.</div>
+                ) : (
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th style={{ textAlign: "right" }}>Fuel Cost (₹)</th>
+                                <th style={{ textAlign: "right" }}>Maintenance Cost (₹)</th>
+                                <th style={{ textAlign: "right" }}>Total Cost (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {dispMonthly.map((d, i) => {
+                                const fuelCost = Number(d.fuel_cost || d.total_fuel || 0);
+                                const maintCost = Number(d.maint_cost || d.total_maintenance || 0);
+                                const total = fuelCost + maintCost;
+                                return (
+                                    <tr key={i}>
+                                        <td style={{ fontWeight: 500 }}>{d.month_name || `Month ${d.month}`}</td>
+                                        <td style={{ textAlign: "right", color: "#dc2626" }}>₹{fuelCost.toLocaleString()}</td>
+                                        <td style={{ textAlign: "right", color: "#d97706" }}>₹{maintCost.toLocaleString()}</td>
+                                        <td style={{ textAlign: "right", fontWeight: 600 }}>₹{total.toLocaleString()}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                        <tfoot>
+                            <tr style={{ background: "var(--color-surface-raised)", borderTop: "2px solid var(--color-border)" }}>
+                                <td style={{ fontWeight: 700, padding: "12px 14px" }}>YTD Total</td>
+                                <td style={{ textAlign: "right", fontWeight: 700, color: "#dc2626", padding: "12px 14px" }}>₹{ytdFuel.toLocaleString()}</td>
+                                <td style={{ textAlign: "right", fontWeight: 700, color: "#d97706", padding: "12px 14px" }}>₹{Number(ytdSummary.ytd_maint_cost || 0).toLocaleString()}</td>
+                                <td style={{ textAlign: "right", fontWeight: 800, padding: "12px 14px" }}>₹{Number(ytdSummary.ytd_total_cost || 0).toLocaleString()}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                )}
             </div>
         </div>
     );

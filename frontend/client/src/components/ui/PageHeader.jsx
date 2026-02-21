@@ -4,124 +4,100 @@ import React from "react";
  * PageHeader – Consistent page-level header for every page.
  *
  * Props:
- *   title        string    – page title
- *   actionLabel  string    – primary action button label (e.g. "+ New Vehicle")
- *   onAction     function  – callback for primary action
- *   search       string    – search value
- *   onSearch     function  – search change handler
- *   searchPlaceholder string
- *   sortOptions  Array<{label, value}>
- *   sortValue    string
- *   onSort       function
- *   groupOptions Array<{label, value}>
- *   groupValue   string
- *   onGroup      function
+ *   title            – Page heading
+ *   actionLabel      – Primary action button text (optional)
+ *   onAction         – Callback for primary action
+ *   search / onSearch / searchPlaceholder
+ *   groupOptions / groupValue / onGroup
+ *   sortOptions / sortValue / onSort
  */
 function PageHeader({
     title,
     actionLabel,
     onAction,
-    search = "",
+    search,
     onSearch,
     searchPlaceholder = "Search…",
-    sortOptions = [],
-    sortValue = "",
-    onSort,
-    groupOptions = [],
-    groupValue = "",
+    groupOptions,
+    groupValue,
     onGroup,
+    sortOptions,
+    sortValue,
+    onSort,
 }) {
     return (
-        <div
-            style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: "12px",
-                marginBottom: "20px",
-            }}
-        >
-            {/* Left: Title + Action */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <h2 style={{ fontSize: "1.125rem", fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
-                    {title}
-                </h2>
-                {actionLabel && (
+        <div style={{ marginBottom: "18px" }}>
+            {/* Top row: title + action */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+                <h2 style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--color-text-primary)", margin: 0 }}>{title}</h2>
+                {actionLabel && onAction && (
                     <button
                         onClick={onAction}
+                        id={`action-${title.replace(/\s+/g, "-").toLowerCase()}`}
                         style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            padding: "7px 14px",
-                            background: "#1d4ed8",
+                            padding: "9px 18px",
+                            background: "var(--color-primary)",
                             color: "#fff",
                             border: "none",
                             borderRadius: "6px",
-                            fontSize: "0.8125rem",
                             fontWeight: 600,
+                            fontSize: "0.875rem",
                             cursor: "pointer",
-                            whiteSpace: "nowrap",
-                            boxShadow: "0 1px 2px rgba(29,78,216,0.25)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
                         }}
                     >
-                        <span style={{ fontSize: "16px", lineHeight: "1" }}>+</span>
-                        {actionLabel}
+                        <span style={{ fontSize: "16px", lineHeight: 1 }}>+</span> {actionLabel}
                     </button>
                 )}
             </div>
 
-            {/* Right: Search + Filters */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+            {/* Controls row: search + group-by + sort */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                 {/* Search */}
                 {onSearch && (
-                    <div style={{ position: "relative" }}>
+                    <div style={{ position: "relative", flex: "1 1 200px", maxWidth: "320px" }}>
                         <svg
-                            width="15" height="15" viewBox="0 0 15 15"
-                            fill="none" aria-hidden="true"
-                            style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}
+                            width="14" height="14" viewBox="0 0 14 14" fill="none"
+                            style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted)" }}
                         >
-                            <circle cx="6.5" cy="6.5" r="5" stroke="#94a3b8" strokeWidth="1.4" />
-                            <line x1="10.5" y1="10.5" x2="13.5" y2="13.5" stroke="#94a3b8" strokeWidth="1.4" strokeLinecap="round" />
+                            <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.4" />
+                            <line x1="9" y1="9" x2="12" y2="12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                         </svg>
                         <input
-                            type="text"
-                            value={search}
+                            type="search"
+                            value={search || ""}
                             onChange={(e) => onSearch(e.target.value)}
                             placeholder={searchPlaceholder}
-                            aria-label="Search"
+                            aria-label={searchPlaceholder}
                             style={{
-                                paddingLeft: "32px",
-                                paddingRight: "10px",
-                                height: "34px",
-                                width: "210px",
-                                fontSize: "0.8125rem",
-                                border: "1px solid #e2e8f0",
+                                width: "100%",
+                                padding: "8px 12px 8px 30px",
+                                border: "1px solid var(--color-border)",
                                 borderRadius: "6px",
-                                background: "#fff",
-                                outline: "none",
+                                fontSize: "0.875rem",
+                                background: "var(--color-surface)",
+                                color: "var(--color-text-primary)",
                             }}
                         />
                     </div>
                 )}
 
                 {/* Group By */}
-                {groupOptions.length > 0 && (
+                {groupOptions && groupOptions.length > 0 && (
                     <select
-                        value={groupValue}
+                        value={groupValue || ""}
                         onChange={(e) => onGroup && onGroup(e.target.value)}
                         aria-label="Group by"
                         style={{
-                            height: "34px",
-                            padding: "0 30px 0 10px",
-                            fontSize: "0.8125rem",
-                            border: "1px solid #e2e8f0",
+                            padding: "8px 32px 8px 10px",
+                            border: "1px solid var(--color-border)",
                             borderRadius: "6px",
-                            background: "#fff",
-                            color: "#475569",
+                            fontSize: "0.8125rem",
+                            background: "var(--color-surface)",
+                            color: "var(--color-text-secondary)",
                             cursor: "pointer",
-                            minWidth: "130px",
                         }}
                     >
                         <option value="">Group by…</option>
@@ -132,21 +108,19 @@ function PageHeader({
                 )}
 
                 {/* Sort */}
-                {sortOptions.length > 0 && (
+                {sortOptions && sortOptions.length > 0 && (
                     <select
-                        value={sortValue}
+                        value={sortValue || ""}
                         onChange={(e) => onSort && onSort(e.target.value)}
                         aria-label="Sort by"
                         style={{
-                            height: "34px",
-                            padding: "0 30px 0 10px",
-                            fontSize: "0.8125rem",
-                            border: "1px solid #e2e8f0",
+                            padding: "8px 32px 8px 10px",
+                            border: "1px solid var(--color-border)",
                             borderRadius: "6px",
-                            background: "#fff",
-                            color: "#475569",
+                            fontSize: "0.8125rem",
+                            background: "var(--color-surface)",
+                            color: "var(--color-text-secondary)",
                             cursor: "pointer",
-                            minWidth: "130px",
                         }}
                     >
                         <option value="">Sort by…</option>

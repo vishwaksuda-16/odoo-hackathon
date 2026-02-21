@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 
 const NAV_ITEMS = [
     {
@@ -77,17 +77,17 @@ const NAV_ITEMS = [
     },
 ];
 
-function Sidebar({ setPage, currentPage }) {
-    const [collapsed, setCollapsed] = useState(true);
+function Sidebar({ setPage, currentPage, collapsed, allowedPages = [] }) {
+    const filteredItems = NAV_ITEMS.filter((item) => allowedPages.includes(item.key));
 
     return (
         <aside
             aria-label="Navigation sidebar"
             style={{
-                width: collapsed ? "60px" : "224px",
-                minWidth: collapsed ? "60px" : "224px",
+                width: collapsed ? "64px" : "220px",
+                minWidth: collapsed ? "64px" : "220px",
                 height: "100vh",
-                backgroundColor: "#1e293b",
+                backgroundColor: "var(--sidebar-bg)",
                 display: "flex",
                 flexDirection: "column",
                 transition: "width 200ms ease, min-width 200ms ease",
@@ -96,7 +96,7 @@ function Sidebar({ setPage, currentPage }) {
                 flexShrink: 0,
             }}
         >
-            {/* Branding + Toggle */}
+            {/* Branding */}
             <div
                 style={{
                     display: "flex",
@@ -111,7 +111,7 @@ function Sidebar({ setPage, currentPage }) {
                 {/* Logo mark */}
                 <div
                     style={{
-                        width: "30px", height: "30px", borderRadius: "8px",
+                        width: "32px", height: "32px", borderRadius: "8px",
                         background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                         display: "flex", alignItems: "center", justifyContent: "center",
                         flexShrink: 0, fontWeight: 800, fontSize: "15px", color: "#fff",
@@ -124,37 +124,12 @@ function Sidebar({ setPage, currentPage }) {
                         FleetFlow
                     </span>
                 )}
-                <button
-                    onClick={() => setCollapsed((c) => !c)}
-                    aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-                    title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-                    style={{
-                        marginLeft: "auto",
-                        background: "none",
-                        border: "none",
-                        color: "#94a3b8",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: "4px",
-                        borderRadius: "4px",
-                        flexShrink: 0,
-                    }}
-                >
-                    {/* Hamburger icon */}
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                        <line x1="2" y1="4.5" x2="16" y2="4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                        <line x1="2" y1="9" x2="16" y2="9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                        <line x1="2" y1="13.5" x2="16" y2="13.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                    </svg>
-                </button>
             </div>
 
             {/* Navigation */}
             <nav aria-label="Main navigation" style={{ flex: 1, padding: "10px 0", overflowY: "auto" }}>
                 <ul role="list" style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    {NAV_ITEMS.map((item) => {
+                    {filteredItems.map((item) => {
                         const isActive = currentPage === item.key;
                         return (
                             <li key={item.key}>
@@ -167,11 +142,12 @@ function Sidebar({ setPage, currentPage }) {
                                         alignItems: "center",
                                         gap: "12px",
                                         width: "100%",
-                                        padding: "10px 14px",
-                                        background: isActive ? "#1d4ed8" : "transparent",
+                                        padding: collapsed ? "10px 0" : "10px 14px",
+                                        justifyContent: collapsed ? "center" : "flex-start",
+                                        background: isActive ? "var(--sidebar-active-bg)" : "transparent",
                                         border: "none",
                                         borderRadius: "0",
-                                        color: isActive ? "#fff" : "#94a3b8",
+                                        color: isActive ? "#fff" : "var(--sidebar-text)",
                                         cursor: "pointer",
                                         fontSize: "0.875rem",
                                         fontWeight: isActive ? 600 : 400,
@@ -181,14 +157,14 @@ function Sidebar({ setPage, currentPage }) {
                                     }}
                                     onMouseEnter={(e) => {
                                         if (!isActive) {
-                                            e.currentTarget.style.background = "#334155";
+                                            e.currentTarget.style.background = "var(--sidebar-hover-bg)";
                                             e.currentTarget.style.color = "#e2e8f0";
                                         }
                                     }}
                                     onMouseLeave={(e) => {
                                         if (!isActive) {
                                             e.currentTarget.style.background = "transparent";
-                                            e.currentTarget.style.color = "#94a3b8";
+                                            e.currentTarget.style.color = "var(--sidebar-text)";
                                         }
                                     }}
                                 >
@@ -200,20 +176,6 @@ function Sidebar({ setPage, currentPage }) {
                     })}
                 </ul>
             </nav>
-
-            {/* Footer */}
-            {!collapsed && (
-                <div
-                    style={{
-                        padding: "12px 16px",
-                        borderTop: "1px solid rgba(255,255,255,0.08)",
-                        fontSize: "0.6875rem",
-                        color: "#475569",
-                    }}
-                >
-                    FleetFlow v1.0 · Hackathon
-                </div>
-            )}
         </aside>
     );
 }

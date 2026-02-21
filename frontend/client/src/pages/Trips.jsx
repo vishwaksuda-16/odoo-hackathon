@@ -1,19 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import StatusPill from "../components/ui/StatusPill";
 import PageHeader from "../components/ui/PageHeader";
 import FormField from "../components/ui/FormField";
+import { tripAPI, vehicleAPI, driverAPI } from "../lib/api";
 
-const VEHICLES = ["Tata Prima – MH12AB1234 (15t)", "Ashok Leyland – MH14CD5678 (3.5t)", "Eicher Pro – MH01EF9012 (20t)", "Force Traveller – DL04GH3456 (1.8t)"];
-const VEHICLE_CAPS = { 0: 15000, 1: 3500, 2: 20000, 3: 1800 };
-const DRIVERS = ["Alex Kumar", "Priya Mohan", "Raj Singh", "Sara Nair", "Vikram Patel"];
-
-const INITIAL_TRIPS = [
-    { id: 101, vehicle: VEHICLES[0], driver: "Alex Kumar", origin: "Chennai", destination: "Bangalore", cargo: "Electronics", weight: 12000, fuel: 200, status: "completed" },
-    { id: 102, vehicle: VEHICLES[1], driver: "Priya Mohan", origin: "Pune", destination: "Mumbai", cargo: "Textiles", weight: 2800, fuel: 40, status: "on_trip" },
-    { id: 103, vehicle: VEHICLES[2], driver: "Raj Singh", origin: "Delhi", destination: "Jaipur", cargo: "Steel Rods", weight: 18000, fuel: 300, status: "scheduled" },
-];
-
-const EMPTY = { vehicleIdx: "", driver: "", origin: "", destination: "", cargo: "", weight: "", fuel: "" };
+const EMPTY = { vehicle_id: "", driver_id: "", cargo_weight_kg: "" };
 
 function Modal({ title, onClose, children }) {
     return (
@@ -21,10 +12,10 @@ function Modal({ title, onClose, children }) {
             style={{ position: "fixed", inset: 0, zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(15,23,42,0.45)" }}
             onClick={(e) => e.target === e.currentTarget && onClose()}
         >
-            <div style={{ background: "#fff", borderRadius: "12px", width: "100%", maxWidth: "520px", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", maxHeight: "90vh", overflowY: "auto" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: "1px solid #e2e8f0" }}>
-                    <h3 id="trip-modal-title" style={{ fontSize: "1rem", fontWeight: 700 }}>{title}</h3>
-                    <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "22px", color: "#94a3b8", cursor: "pointer" }}>×</button>
+            <div style={{ background: "var(--color-surface)", borderRadius: "12px", width: "100%", maxWidth: "520px", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", maxHeight: "90vh", overflowY: "auto" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: "1px solid var(--color-border)" }}>
+                    <h3 id="trip-modal-title" style={{ fontSize: "1rem", fontWeight: 700, color: "var(--color-text-primary)" }}>{title}</h3>
+                    <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "22px", color: "var(--color-text-muted)", cursor: "pointer" }}>×</button>
                 </div>
                 <div style={{ padding: "20px 24px" }}>{children}</div>
             </div>
@@ -32,94 +23,145 @@ function Modal({ title, onClose, children }) {
     );
 }
 
-function Trips({ showToast }) {
-    const [trips, setTrips] = useState(INITIAL_TRIPS);
+function Trips({ showToast, role }) {
+    const [trips, setTrips] = useState([]);
+    const [availableVehicles, setAvailableVehicles] = useState([]);
+    const [availableDrivers, setAvailableDrivers] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [form, setForm] = useState(EMPTY);
     const [errors, setErrors] = useState({});
     const [weightWarning, setWeightWarning] = useState("");
+    const [saving, setSaving] = useState(false);
     const [search, setSearch] = useState("");
     const [sortBy, setSortBy] = useState("");
+
+    const canCreate = role === "manager" || role === "dispatcher";
+
+    const loadTrips = useCallback(async () => {
+        setLoading(true);
+        try {
+            const data = await tripAPI.getAll("limit=100");
+            setTrips(data.trips || []);
+        } catch (err) {
+            showToast("Failed to load trips: " + err.message, "error");
+        } finally {
+            setLoading(false);
+        }
+    }, [showToast]);
+
+    useEffect(() => { loadTrips(); }, [loadTrips]);
+
+    const openCreateModal = async () => {
+        try {
+            const [vRes, dRes] = await Promise.all([
+                vehicleAPI.getAll("status=available"),
+                driverAPI.getAll("status=on_duty"),
+            ]);
+            setAvailableVehicles(vRes.vehicles || []);
+            setAvailableDrivers((dRes.drivers || []).filter((d) => new Date(d.license_expiry) > new Date()));
+            setShowModal(true);
+        } catch (err) {
+            showToast("Failed to load available vehicles/drivers: " + err.message, "error");
+        }
+    };
 
     const setF = (k, v) => {
         const next = { ...form, [k]: v };
         setForm(next);
         setErrors((e) => ({ ...e, [k]: "" }));
         // Live weight validation
-        if ((k === "weight" || k === "vehicleIdx") && next.vehicleIdx !== "") {
-            const cap = VEHICLE_CAPS[Number(next.vehicleIdx)];
-            const w = Number(next.weight);
-            if (w > 0 && cap && w > cap) {
-                setWeightWarning(`Cargo weight (${w.toLocaleString()} kg) exceeds vehicle capacity (${cap.toLocaleString()} kg). Trip cannot be created.`);
-            } else { setWeightWarning(""); }
+        if ((k === "cargo_weight_kg" || k === "vehicle_id") && next.vehicle_id) {
+            const vehicle = availableVehicles.find((ve) => String(ve.id) === String(next.vehicle_id));
+            if (vehicle && Number(next.cargo_weight_kg) > Number(vehicle.max_load_kg)) {
+                setWeightWarning(`Cargo weight (${Number(next.cargo_weight_kg).toLocaleString()} kg) exceeds vehicle capacity (${Number(vehicle.max_load_kg).toLocaleString()} kg). Trip cannot be created.`);
+            } else {
+                setWeightWarning("");
+            }
         }
     };
 
     const validate = () => {
         const errs = {};
-        if (form.vehicleIdx === "") errs.vehicleIdx = "Please select a vehicle.";
-        if (!form.driver) errs.driver = "Please select a driver.";
-        if (!form.origin.trim()) errs.origin = "Origin is required.";
-        if (!form.destination.trim()) errs.destination = "Destination is required.";
-        if (!form.cargo.trim()) errs.cargo = "Cargo description is required.";
-        if (!form.weight || isNaN(Number(form.weight)) || Number(form.weight) <= 0)
-            errs.weight = "Cargo weight must be a positive number.";
-        if (!form.fuel || isNaN(Number(form.fuel)) || Number(form.fuel) <= 0)
-            errs.fuel = "Estimated fuel must be a positive number.";
-        if (!errs.weight && !errs.vehicleIdx && form.vehicleIdx !== "") {
-            const cap = VEHICLE_CAPS[Number(form.vehicleIdx)];
-            if (Number(form.weight) > cap) errs.weight = `Cargo weight exceeds vehicle capacity (${cap.toLocaleString()} kg). Trip cannot be created.`;
+        if (!form.vehicle_id) errs.vehicle_id = "Please select a vehicle.";
+        if (!form.driver_id) errs.driver_id = "Please select a driver.";
+        if (!form.cargo_weight_kg || isNaN(Number(form.cargo_weight_kg)) || Number(form.cargo_weight_kg) <= 0)
+            errs.cargo_weight_kg = "Cargo weight must be a positive number.";
+        if (!errs.cargo_weight_kg && !errs.vehicle_id && form.vehicle_id) {
+            const vehicle = availableVehicles.find((v) => String(v.id) === String(form.vehicle_id));
+            if (vehicle && Number(form.cargo_weight_kg) > Number(vehicle.max_load_kg))
+                errs.cargo_weight_kg = `Cargo weight exceeds vehicle capacity (${Number(vehicle.max_load_kg).toLocaleString()} kg). Trip cannot be created.`;
         }
         return errs;
     };
 
-    const handleSave = (e) => {
+    const handleSave = async (e) => {
         e.preventDefault();
         const errs = validate();
         if (Object.keys(errs).length) { setErrors(errs); showToast("Trip cannot be created. Please review the highlighted fields.", "error"); return; }
-        const newTrip = {
-            id: 200 + trips.length, vehicle: VEHICLES[Number(form.vehicleIdx)], driver: form.driver,
-            origin: form.origin, destination: form.destination, cargo: form.cargo,
-            weight: Number(form.weight), fuel: Number(form.fuel), status: "scheduled",
-        };
-        setTrips((t) => [newTrip, ...t]);
-        setShowModal(false); setForm(EMPTY); setErrors({}); setWeightWarning("");
-        showToast("Trip scheduled successfully.", "success");
+
+        setSaving(true);
+        try {
+            await tripAPI.create({
+                vehicle_id: Number(form.vehicle_id),
+                driver_id: Number(form.driver_id),
+                cargo_weight_kg: Number(form.cargo_weight_kg),
+            });
+            setShowModal(false); setForm(EMPTY); setErrors({}); setWeightWarning("");
+            showToast("Trip dispatched successfully.", "success");
+            loadTrips();
+        } catch (err) {
+            const msg = err.body?.detail || err.message || "Failed to create trip.";
+            showToast(msg, "error");
+        } finally {
+            setSaving(false);
+        }
     };
 
     let displayed = trips.filter((t) =>
-        !search || [t.vehicle, t.driver, t.origin, t.destination, t.cargo].some((s) => s.toLowerCase().includes(search.toLowerCase()))
+        !search || [t.vehicle_name, t.driver_name, t.license_plate, t.status].some((s) =>
+            (s || "").toLowerCase().includes(search.toLowerCase())
+        )
     );
     if (sortBy === "status") displayed = [...displayed].sort((a, b) => a.status.localeCompare(b.status));
-    if (sortBy === "weight") displayed = [...displayed].sort((a, b) => b.weight - a.weight);
+    if (sortBy === "weight") displayed = [...displayed].sort((a, b) => Number(b.cargo_weight_kg) - Number(a.cargo_weight_kg));
+
+    if (loading) {
+        return (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "300px", gap: "10px" }}>
+                <span className="ff-spinner"></span>
+                <span style={{ color: "var(--color-text-muted)" }}>Loading trips…</span>
+            </div>
+        );
+    }
 
     return (
         <div>
             <PageHeader
                 title="Trip Dispatcher"
-                actionLabel="New Trip"
-                onAction={() => setShowModal(true)}
+                actionLabel={canCreate ? "New Trip" : undefined}
+                onAction={canCreate ? openCreateModal : undefined}
                 search={search} onSearch={setSearch} searchPlaceholder="Search trips…"
                 sortOptions={[{ label: "Status", value: "status" }, { label: "Cargo Weight", value: "weight" }]}
                 sortValue={sortBy} onSort={setSortBy}
-                groupOptions={[{ label: "Status", value: "status" }, { label: "Driver", value: "driver" }]}
+                groupOptions={[{ label: "Status", value: "status" }]}
             />
 
-            <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden" }}>
+            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "10px", overflow: "hidden" }}>
                 {displayed.length === 0 ? (
-                    <div style={{ padding: "40px", textAlign: "center", color: "#94a3b8" }}>No trips match your search.</div>
+                    <div style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>No trips match your search.</div>
                 ) : (
                     <table>
-                        <thead><tr><th>Trip ID</th><th>Vehicle</th><th>Driver</th><th>Origin → Destination</th><th>Cargo</th><th>Weight (kg)</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Trip ID</th><th>Vehicle</th><th>Driver</th><th>Cargo (kg)</th><th>Status</th></tr></thead>
                         <tbody>
                             {displayed.map((t) => (
                                 <tr key={t.id}>
-                                    <td style={{ fontWeight: 600, color: "#1d4ed8" }}>#{t.id}</td>
-                                    <td style={{ color: "#475569", fontSize: "0.8125rem" }}>{t.vehicle}</td>
-                                    <td style={{ fontWeight: 500 }}>{t.driver}</td>
-                                    <td style={{ color: "#475569" }}>{t.origin} → {t.destination}</td>
-                                    <td style={{ color: "#475569" }}>{t.cargo}</td>
-                                    <td>{t.weight.toLocaleString()}</td>
+                                    <td style={{ fontWeight: 600, color: "var(--color-primary)" }}>#{t.id}</td>
+                                    <td style={{ color: "var(--color-text-secondary)", fontSize: "0.8125rem" }}>
+                                        {t.vehicle_name} – {t.license_plate}
+                                    </td>
+                                    <td style={{ fontWeight: 500 }}>{t.driver_name}</td>
+                                    <td>{Number(t.cargo_weight_kg).toLocaleString()}</td>
                                     <td><StatusPill status={t.status} /></td>
                                 </tr>
                             ))}
@@ -132,47 +174,39 @@ function Trips({ showToast }) {
                 <Modal title="Dispatch New Trip" onClose={() => { setShowModal(false); setForm(EMPTY); setErrors({}); setWeightWarning(""); }}>
                     <form onSubmit={handleSave} noValidate>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-                            <FormField label="Vehicle" required htmlFor="t-vehicle" error={errors.vehicleIdx}>
-                                <select id="t-vehicle" value={form.vehicleIdx} onChange={(e) => setF("vehicleIdx", e.target.value)} className={errors.vehicleIdx ? "error-field" : ""}>
+                            <FormField label="Vehicle" required htmlFor="t-vehicle" error={errors.vehicle_id}>
+                                <select id="t-vehicle" value={form.vehicle_id} onChange={(e) => setF("vehicle_id", e.target.value)} className={errors.vehicle_id ? "error-field" : ""}>
                                     <option value="">Select vehicle…</option>
-                                    {VEHICLES.map((v, i) => <option key={i} value={i}>{v}</option>)}
+                                    {availableVehicles.map((v) => (
+                                        <option key={v.id} value={v.id}>{v.name_model} – {v.license_plate} ({Number(v.max_load_kg).toLocaleString()} kg)</option>
+                                    ))}
                                 </select>
+                                {availableVehicles.length === 0 && <span style={{ fontSize: "0.75rem", color: "var(--color-warning)" }}>No available vehicles</span>}
                             </FormField>
-                            <FormField label="Driver" required htmlFor="t-driver" error={errors.driver}>
-                                <select id="t-driver" value={form.driver} onChange={(e) => setF("driver", e.target.value)} className={errors.driver ? "error-field" : ""}>
+                            <FormField label="Driver" required htmlFor="t-driver" error={errors.driver_id}>
+                                <select id="t-driver" value={form.driver_id} onChange={(e) => setF("driver_id", e.target.value)} className={errors.driver_id ? "error-field" : ""}>
                                     <option value="">Select driver…</option>
-                                    {DRIVERS.map((d) => <option key={d} value={d}>{d}</option>)}
+                                    {availableDrivers.map((d) => (
+                                        <option key={d.id} value={d.id}>{d.name} (Score: {d.safety_score})</option>
+                                    ))}
                                 </select>
+                                {availableDrivers.length === 0 && <span style={{ fontSize: "0.75rem", color: "var(--color-warning)" }}>No on-duty drivers with valid licenses</span>}
                             </FormField>
                         </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-                            <FormField label="Origin" required htmlFor="t-origin" error={errors.origin}>
-                                <input id="t-origin" value={form.origin} onChange={(e) => setF("origin", e.target.value)} placeholder="City or location" className={errors.origin ? "error-field" : ""} />
-                            </FormField>
-                            <FormField label="Destination" required htmlFor="t-dest" error={errors.destination}>
-                                <input id="t-dest" value={form.destination} onChange={(e) => setF("destination", e.target.value)} placeholder="City or location" className={errors.destination ? "error-field" : ""} />
-                            </FormField>
-                        </div>
-                        <FormField label="Cargo Description" required htmlFor="t-cargo" error={errors.cargo}>
-                            <input id="t-cargo" value={form.cargo} onChange={(e) => setF("cargo", e.target.value)} placeholder="e.g. Electronics, Textiles, Steel" className={errors.cargo ? "error-field" : ""} />
+                        <FormField label="Cargo Weight (kg)" required htmlFor="t-weight" error={errors.cargo_weight_kg}>
+                            <input id="t-weight" type="number" min="1" value={form.cargo_weight_kg} onChange={(e) => setF("cargo_weight_kg", e.target.value)} placeholder="e.g. 12000" className={errors.cargo_weight_kg ? "error-field" : ""} />
                         </FormField>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-                            <FormField label="Cargo Weight (kg)" required htmlFor="t-weight" error={errors.weight}>
-                                <input id="t-weight" type="number" min="1" value={form.weight} onChange={(e) => setF("weight", e.target.value)} placeholder="e.g. 12000" className={errors.weight ? "error-field" : ""} />
-                            </FormField>
-                            <FormField label="Estimated Fuel (L)" required htmlFor="t-fuel" error={errors.fuel}>
-                                <input id="t-fuel" type="number" min="1" value={form.fuel} onChange={(e) => setF("fuel", e.target.value)} placeholder="e.g. 200" className={errors.fuel ? "error-field" : ""} />
-                            </FormField>
-                        </div>
                         {weightWarning && (
-                            <div role="alert" style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "6px", padding: "9px 12px", marginBottom: "12px", fontSize: "0.8125rem", color: "#b45309" }}>
+                            <div role="alert" style={{ background: "var(--color-warning-bg)", border: "1px solid var(--color-warning-border)", borderRadius: "6px", padding: "9px 12px", marginBottom: "12px", fontSize: "0.8125rem", color: "#b45309" }}>
                                 ⚠ {weightWarning}
                             </div>
                         )}
                         <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "8px" }}>
                             <button type="button" onClick={() => { setShowModal(false); setForm(EMPTY); setErrors({}); setWeightWarning(""); }}
-                                style={{ padding: "9px 18px", border: "1px solid #e2e8f0", borderRadius: "6px", background: "#fff", color: "#475569", fontWeight: 500, cursor: "pointer" }}>Cancel</button>
-                            <button type="submit" style={{ padding: "9px 20px", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: "6px", fontWeight: 600, cursor: "pointer" }}>Dispatch Trip</button>
+                                style={{ padding: "9px 18px", border: "1px solid var(--color-border)", borderRadius: "6px", background: "var(--color-surface)", color: "var(--color-text-secondary)", fontWeight: 500, cursor: "pointer" }}>Cancel</button>
+                            <button type="submit" disabled={saving} style={{ padding: "9px 20px", background: saving ? "#93c5fd" : "#1d4ed8", color: "#fff", border: "none", borderRadius: "6px", fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
+                                {saving ? "Creating…" : "Dispatch Trip"}
+                            </button>
                         </div>
                     </form>
                 </Modal>
