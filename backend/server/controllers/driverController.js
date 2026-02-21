@@ -1,7 +1,5 @@
 import pool from '../config/db.js';
 
-
-// CREATE DRIVER
 export const createDriver = async (req, res) => {
   const { name, license_expiry } = req.body;
 
@@ -20,13 +18,9 @@ export const createDriver = async (req, res) => {
   }
 };
 
-
-// GET ALL DRIVERS
 export const getAllDrivers = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM drivers ORDER BY id`
-    );
+    const result = await pool.query(`SELECT * FROM drivers ORDER BY id`);
     res.json(result.rows);
 
   } catch (error) {
@@ -34,8 +28,6 @@ export const getAllDrivers = async (req, res) => {
   }
 };
 
-
-// GET DRIVER BY ID
 export const getDriverById = async (req, res) => {
   const { id } = req.params;
 
@@ -55,8 +47,6 @@ export const getDriverById = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-
 
 export const updateDriver = async (req, res) => {
   const { id } = req.params;
@@ -85,8 +75,6 @@ export const updateDriver = async (req, res) => {
   }
 };
 
-
-// DELETE DRIVER
 export const deleteDriver = async (req, res) => {
   const { id } = req.params;
 

@@ -1,11 +1,6 @@
-/**
- * Centralized Express error handler.
- * Must be the LAST app.use() in server.js.
- */
 export const errorHandler = (err, req, res, next) => {
     console.error(`[ERROR] ${req.method} ${req.path}:`, err.message);
 
-    // PostgreSQL constraint violations
     if (err.code === '23505') {
         return res.status(409).json({
             success: false,
@@ -28,7 +23,6 @@ export const errorHandler = (err, req, res, next) => {
         });
     }
 
-    // JWT errors
     if (err.name === 'JsonWebTokenError') {
         return res.status(401).json({ success: false, code: 'INVALID_TOKEN', reason: err.message });
     }
@@ -36,12 +30,10 @@ export const errorHandler = (err, req, res, next) => {
         return res.status(401).json({ success: false, code: 'TOKEN_EXPIRED', reason: 'Access token expired.' });
     }
 
-    // State machine violations
     if (err.message?.startsWith('ILLEGAL_')) {
         return res.status(409).json({ success: false, code: 'ILLEGAL_STATE_TRANSITION', reason: err.message });
     }
 
-    // Default 500
     const statusCode = err.status ?? err.statusCode ?? 500;
     return res.status(statusCode).json({
         success: false,

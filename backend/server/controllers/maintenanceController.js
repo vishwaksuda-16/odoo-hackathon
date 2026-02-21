@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 import { StateService } from '../services/stateService.js';
+import { AlertService } from '../services/alertService.js';
 
 export const addServiceLog = async (req, res) => {
     const { vehicle_id, cost, description, odometer_at_service } = req.body;
@@ -9,7 +10,6 @@ export const addServiceLog = async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Insert maintenance log
         const log = await client.query(
             `INSERT INTO maintenance_logs
                (vehicle_id, cost, description, odometer_at_service, performed_by)
@@ -18,10 +18,8 @@ export const addServiceLog = async (req, res) => {
             [vehicle_id, cost, description, odometer_at_service, performedBy]
         );
 
-        // Transition vehicle → in_shop via StateService (validates current state)
         await StateService.moveToShop(vehicle_id, client, performedBy);
 
-        // Audit log
         await client.query(
             `INSERT INTO audit_logs (entity_type, entity_id, action, performed_by, metadata)
              VALUES ('vehicle', $1, 'maintenance_logged', $2, $3)`,
@@ -29,6 +27,17 @@ export const addServiceLog = async (req, res) => {
         );
 
         await client.query('COMMIT');
+
+        AlertService.resolveOdometerAlertsForVehicle(vehicle_id).catch(() => { });
+        pool.query(
+            `UPDATE maintenance_alerts
+             SET resolved = TRUE, resolved_at = NOW()
+             WHERE vehicle_id = $1
+               AND alert_type IN ('overdue_service')
+               AND resolved   = FALSE`,
+            [vehicle_id]
+        ).catch(() => { });
+
         return res.status(201).json({ success: true, log: log.rows[0] });
 
     } catch (e) {

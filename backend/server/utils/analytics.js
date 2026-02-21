@@ -1,14 +1,34 @@
 import pool from '../config/db.js';
 
-// ─────────────────────────────────────────────────────────────────
-//  All metrics are computed via SQL aggregation — no JS loops.
-//  JS is only used to format/round the final output.
-// ─────────────────────────────────────────────────────────────────
+export async function getMaterializedMetrics(filters = {}) {
+    const conditions = ['true'];
+    const params = [];
 
-/**
- * A. Fuel Efficiency — fleet-wide and per vehicle
- *    km_travelled / liters_consumed
- */
+    if (filters.status) {
+        params.push(filters.status);
+        conditions.push(`status = $${params.length}`);
+    }
+    if (filters.vehicle_class) {
+        params.push(filters.vehicle_class);
+        conditions.push(`vehicle_class = $${params.length}`);
+    }
+    if (filters.maintenance_due === true) {
+        conditions.push('maintenance_due = true');
+    }
+
+    const { rows } = await pool.query(
+        `SELECT * FROM mv_vehicle_metrics WHERE ${conditions.join(' AND ')}
+         ORDER BY vehicle_id`,
+        params
+    );
+    return rows;
+}
+
+export async function refreshMaterializedView() {
+    await pool.query('REFRESH MATERIALIZED VIEW CONCURRENTLY mv_vehicle_metrics');
+    console.log('[Analytics] Materialized view refreshed.');
+}
+
 export async function getFuelEfficiency() {
     const { rows } = await pool.query(`
         SELECT
@@ -30,10 +50,6 @@ export async function getFuelEfficiency() {
     return rows;
 }
 
-/**
- * B. Cost Per KM
- *    (total_fuel_cost + total_maintenance_cost) / total_km
- */
 export async function getCostPerKm() {
     const { rows } = await pool.query(`
         SELECT
@@ -61,12 +77,6 @@ export async function getCostPerKm() {
     return rows;
 }
 
-/**
- * C. Vehicle ROI
- *    (revenue - operational_cost) / acquisition_cost
- *    Revenue is estimated at $1.5 / km (hackathon assumption).
- *    Acquisition cost defaults to $25,000 (configurable via param).
- */
 export async function getVehicleROI(revenuePerKm = 1.5, acquisitionCost = 25000) {
     const { rows } = await pool.query(`
         SELECT
@@ -93,10 +103,6 @@ export async function getVehicleROI(revenuePerKm = 1.5, acquisitionCost = 25000)
     return rows;
 }
 
-/**
- * D. Fleet Utilization Rate
- *    active_trips (on_trip) / total_non_retired_vehicles
- */
 export async function getUtilizationRate() {
     const { rows } = await pool.query(`
         SELECT
@@ -117,9 +123,6 @@ export async function getUtilizationRate() {
     return rows[0];
 }
 
-/**
- * Top performing driver (most trips completed, highest safety_score)
- */
 export async function getTopDriver() {
     const { rows } = await pool.query(`
         SELECT
@@ -140,9 +143,6 @@ export async function getTopDriver() {
     return rows;
 }
 
-/**
- * Maintenance Frequency Index — average days between services per vehicle
- */
 export async function getMaintenanceFrequency() {
     const { rows } = await pool.query(`
         SELECT
@@ -169,9 +169,6 @@ export async function getMaintenanceFrequency() {
     return rows;
 }
 
-/**
- * Monthly financial summary (fuel + maintenance grouped by month)
- */
 export async function getMonthlyFinancials(year = new Date().getFullYear()) {
     const { rows } = await pool.query(`
         SELECT
@@ -205,9 +202,6 @@ export async function getMonthlyFinancials(year = new Date().getFullYear()) {
     return rows;
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  Legacy JS helpers (kept for backward compatibility with existing exportController)
-// ─────────────────────────────────────────────────────────────────
 export const calculateFuelEfficiency = (kilometers, liters) =>
     liters > 0 ? (kilometers / liters).toFixed(2) : 0;
 

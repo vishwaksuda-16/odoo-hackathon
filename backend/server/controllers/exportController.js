@@ -2,9 +2,6 @@ import pool from '../config/db.js';
 import { generateCSV, streamCSV } from '../utils/exportUtils.js';
 import { calculateVehicleROI, calculateFuelEfficiency } from '../utils/analytics.js';
 
-// ─────────────────────────────────────────────────────────────────
-//  CSV — Financial Report (streaming for large datasets)
-// ─────────────────────────────────────────────────────────────────
 export const downloadFinancialCSV = async (req, res) => {
     try {
         const query = `
@@ -47,9 +44,6 @@ export const downloadFinancialCSV = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────
-//  CSV — Monthly Payroll Export (streaming)
-// ─────────────────────────────────────────────────────────────────
 export const downloadPayrollCSV = async (req, res) => {
     const year = parseInt(req.query.year) || new Date().getFullYear();
     const month = parseInt(req.query.month) || new Date().getMonth() + 1;
@@ -86,9 +80,6 @@ export const downloadPayrollCSV = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────
-//  CSV — Vehicle Health Audit Export
-// ─────────────────────────────────────────────────────────────────
 export const downloadVehicleHealthCSV = async (req, res) => {
     try {
         const { rows } = await pool.query(`
@@ -122,12 +113,8 @@ export const downloadVehicleHealthCSV = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────
-//  PDF — Fleet Financial Report  (streaming via pdfkit)
-// ─────────────────────────────────────────────────────────────────
 export const downloadFinancialPDF = async (req, res) => {
     try {
-        // Dynamic import so pdfkit is optional (won't crash if not installed)
         let PDFDocument;
         try { ({ default: PDFDocument } = await import('pdfkit')); }
         catch { return res.status(501).json({ error: 'pdfkit not installed. Run: npm install pdfkit' }); }
@@ -148,12 +135,10 @@ export const downloadFinancialPDF = async (req, res) => {
         res.setHeader('Content-Disposition', 'attachment; filename=fleet_report.pdf');
         doc.pipe(res);
 
-        // Header
         doc.fontSize(18).font('Helvetica-Bold').text('Fleet Management — Financial Report', { align: 'center' });
         doc.fontSize(10).font('Helvetica').text(`Generated: ${new Date().toISOString()}`, { align: 'center' });
         doc.moveDown();
 
-        // Table
         const cols = { id: 30, model: 150, plate: 120, km: 80, maint: 90, fuel: 90 };
         const y0 = doc.y;
         doc.font('Helvetica-Bold').fontSize(9);

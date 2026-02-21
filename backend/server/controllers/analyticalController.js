@@ -9,10 +9,6 @@ import {
     getMonthlyFinancials,
 } from '../utils/analytics.js';
 
-// ─────────────────────────────────────────────────────────────────
-//  GET /analytics/dashboard
-//  Returns full fleet snapshot in one call.
-// ─────────────────────────────────────────────────────────────────
 export const getDashboard = async (req, res) => {
     try {
         const [utilization, topDrivers, fuelEfficiency, costPerKm] = await Promise.all([
@@ -22,7 +18,6 @@ export const getDashboard = async (req, res) => {
             getCostPerKm(),
         ]);
 
-        // Fleet-wide averages (computed from per-vehicle rows via SQL)
         const { rows: fleetAvg } = await pool.query(`
             SELECT
                 ROUND(AVG(km_per_liter), 2)   AS avg_fuel_efficiency,
@@ -58,10 +53,6 @@ export const getDashboard = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────
-//  GET /analytics/vehicle/:id
-//  In-depth stats for a single vehicle.
-// ─────────────────────────────────────────────────────────────────
 export const getVehicleAnalytics = async (req, res) => {
     const { id } = req.params;
 
@@ -76,28 +67,23 @@ export const getVehicleAnalytics = async (req, res) => {
                 v.service_due_km,
                 v.odometer >= v.service_due_km                                     AS maintenance_due,
 
-                -- Fuel metrics
                 COALESCE(SUM(f.liters), 0)::NUMERIC                                AS total_liters,
                 COALESCE(SUM(f.fuel_cost), 0)::NUMERIC                             AS total_fuel_cost,
                 CASE WHEN SUM(f.liters) > 0
                      THEN ROUND(v.odometer / SUM(f.liters), 2) ELSE NULL END       AS km_per_liter,
 
-                -- Maintenance metrics
                 COALESCE(SUM(m.cost), 0)::NUMERIC                                  AS total_maint_cost,
                 COUNT(DISTINCT m.id)::INT                                           AS maintenance_count,
 
-                -- Trip metrics
                 COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'completed')::INT    AS completed_trips,
                 COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'cancelled')::INT    AS cancelled_trips,
                 COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'dispatched')::INT   AS active_trips,
 
-                -- Cost per km
                 CASE WHEN v.odometer > 0
                      THEN ROUND(
                          (COALESCE(SUM(f.fuel_cost),0)+COALESCE(SUM(m.cost),0)) / v.odometer,4)
                      ELSE NULL END                                                  AS cost_per_km,
 
-                -- ROI (revenue @ $1.5/km, acquisition $25k)
                 ROUND(v.odometer * 1.5, 2)                                         AS estimated_revenue,
                 ROUND(
                     (v.odometer * 1.5 -
@@ -116,7 +102,6 @@ export const getVehicleAnalytics = async (req, res) => {
         if (rows.length === 0)
             return res.status(404).json({ success: false, error: 'Vehicle not found.' });
 
-        // Include last 5 maintenance entries
         const { rows: mLog } = await pool.query(`
             SELECT service_date, cost, description, odometer_at_service
             FROM maintenance_logs
@@ -132,9 +117,6 @@ export const getVehicleAnalytics = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────
-//  GET /analytics/financial/monthly?year=2025
-// ─────────────────────────────────────────────────────────────────
 export const getMonthlyFinancialReport = async (req, res) => {
     const year = parseInt(req.query.year) || new Date().getFullYear();
     try {
@@ -171,9 +153,6 @@ export const getMonthlyFinancialReport = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────
-//  Legacy endpoint (kept for backward compat)
-// ─────────────────────────────────────────────────────────────────
 export const getFinancialReport = async (req, res) => {
     try {
         const [fuelData, costData, roi] = await Promise.all([
@@ -182,7 +161,6 @@ export const getFinancialReport = async (req, res) => {
             getVehicleROI(),
         ]);
 
-        // Merge into a single per-vehicle view
         const merged = fuelData.map((f, i) => ({
             ...f,
             cost_per_km: costData[i]?.cost_per_km ?? null,

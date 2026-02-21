@@ -1,7 +1,5 @@
 import pool from '../config/db.js';
 
-
-// CREATE VEHICLE
 export const createVehicle = async (req, res) => {
   const { name_model, license_plate, max_load_kg } = req.body;
 
@@ -20,13 +18,9 @@ export const createVehicle = async (req, res) => {
   }
 };
 
-
-// GET ALL VEHICLES
 export const getAllVehicles = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM vehicles ORDER BY id`
-    );
+    const result = await pool.query(`SELECT * FROM vehicles ORDER BY id`);
     res.json(result.rows);
 
   } catch (error) {
@@ -34,8 +28,6 @@ export const getAllVehicles = async (req, res) => {
   }
 };
 
-
-// GET VEHICLE BY ID
 export const getVehicleById = async (req, res) => {
   const { id } = req.params;
 
@@ -56,8 +48,6 @@ export const getVehicleById = async (req, res) => {
   }
 };
 
-
-// UPDATE VEHICLE
 export const updateVehicle = async (req, res) => {
   const { id } = req.params;
   const { name_model, max_load_kg, odometer, status } = req.body;
@@ -85,8 +75,6 @@ export const updateVehicle = async (req, res) => {
   }
 };
 
-
-// DELETE VEHICLE
 export const deleteVehicle = async (req, res) => {
   const { id } = req.params;
 
