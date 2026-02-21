@@ -4,9 +4,18 @@ import Topbar from "./Topbar";
 
 function Layout({ children }) {
     return (
-        <div style={{ display: "flex", minHeight: "100vh" }}>
+        <div
+            style={{
+                display: "flex",
+                minHeight: "100vh",
+                width: "100vw",
+                backgroundColor: "#fafafa",
+            }}
+        >
+            {/* Sidebar */}
             <Sidebar />
 
+            {/* Main area */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                 <Topbar />
                 <div
@@ -14,7 +23,6 @@ function Layout({ children }) {
                         padding: "24px",
                         flex: 1,
                         color: "#000",
-                        backgroundColor: "#fafafa",
                     }}
                 >
                     {children}
