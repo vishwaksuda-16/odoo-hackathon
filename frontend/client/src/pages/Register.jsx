@@ -44,9 +44,9 @@ function Register({ onRegister, onGoLogin, onSwitchToLogin, showToast }) {
         width: "100%",
         padding: "12px 16px",
         borderRadius: "10px",
-        border: "1px solid rgba(255,255,255,0.1)",
-        background: "rgba(255,255,255,0.06)",
-        color: "#fff",
+        border: "1px solid #e0e0e0",
+        background: "#fafafa",
+        color: "#000",
         fontSize: "0.875rem",
         outline: "none",
     };
@@ -55,7 +55,7 @@ function Register({ onRegister, onGoLogin, onSwitchToLogin, showToast }) {
         display: "block",
         fontSize: "0.6875rem",
         fontWeight: 600,
-        color: "rgba(255,255,255,0.55)",
+        color: "#333",
         marginBottom: "5px",
         textTransform: "uppercase",
         letterSpacing: "0.05em",
@@ -69,26 +69,19 @@ function Register({ onRegister, onGoLogin, onSwitchToLogin, showToast }) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)",
+                background: "#000000",
                 position: "relative",
                 overflow: "hidden",
             }}
         >
-            <div style={{
-                position: "absolute", inset: 0,
-                backgroundImage: `radial-gradient(circle at 75% 25%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
-                          radial-gradient(circle at 25% 75%, rgba(99, 102, 241, 0.1) 0%, transparent 50%)`,
-            }} />
-
             <div
                 style={{
                     width: "100%",
                     maxWidth: "440px",
                     borderRadius: "20px",
-                    background: "rgba(255, 255, 255, 0.04)",
-                    backdropFilter: "blur(24px)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                    boxShadow: "0 24px 80px rgba(0, 0, 0, 0.4)",
+                    background: "#ffffff",
+                    border: "1px solid #e0e0e0",
+                    boxShadow: "0 24px 80px rgba(0, 0, 0, 0.25)",
                     padding: "36px 36px 32px",
                     position: "relative",
                     zIndex: 1,
@@ -100,18 +93,18 @@ function Register({ onRegister, onGoLogin, onSwitchToLogin, showToast }) {
                     <div
                         style={{
                             width: "48px", height: "48px", margin: "0 auto 14px",
-                            borderRadius: "14px", background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                            borderRadius: "14px", background: "#000",
                             display: "flex", alignItems: "center", justifyContent: "center",
                             fontSize: "20px", fontWeight: 900, color: "#fff",
-                            boxShadow: "0 4px 20px rgba(99, 102, 241, 0.4)",
+                            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
                         }}
                     >
                         F
                     </div>
-                    <h1 style={{ fontSize: "1.375rem", fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>
+                    <h1 style={{ fontSize: "1.375rem", fontWeight: 800, color: "#000", letterSpacing: "-0.02em" }}>
                         Create Account
                     </h1>
-                    <p style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.45)", marginTop: "4px" }}>
+                    <p style={{ fontSize: "0.8125rem", color: "#666", marginTop: "4px" }}>
                         Join the FleetFlow platform
                     </p>
                 </div>
@@ -119,8 +112,8 @@ function Register({ onRegister, onGoLogin, onSwitchToLogin, showToast }) {
                 {error && (
                     <div role="alert" style={{
                         padding: "10px 14px", borderRadius: "10px",
-                        background: "rgba(239, 68, 68, 0.12)", border: "1px solid rgba(239, 68, 68, 0.25)",
-                        color: "#fca5a5", fontSize: "0.8125rem", marginBottom: "16px", textAlign: "center",
+                        background: "rgba(0, 0, 0, 0.06)", border: "1px solid rgba(0, 0, 0, 0.15)",
+                        color: "#000", fontSize: "0.8125rem", marginBottom: "16px", textAlign: "center",
                     }}>
                         {error}
                     </div>
@@ -135,8 +128,8 @@ function Register({ onRegister, onGoLogin, onSwitchToLogin, showToast }) {
                         <div>
                             <label style={labelStyle}>Role</label>
                             <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} style={{ ...inputStyle, appearance: "none" }}>
-                                <option value="" style={{ color: "#222" }}>Select role…</option>
-                                {roles.map((r) => <option key={r.value} value={r.value} style={{ color: "#222" }}>{r.label}</option>)}
+                                <option value="" style={{ color: "#000" }}>Select role…</option>
+                                {roles.map((r) => <option key={r.value} value={r.value} style={{ color: "#000" }}>{r.label}</option>)}
                             </select>
                         </div>
                     </div>
@@ -162,10 +155,10 @@ function Register({ onRegister, onGoLogin, onSwitchToLogin, showToast }) {
                         disabled={loading}
                         style={{
                             width: "100%", padding: "13px", borderRadius: "10px",
-                            background: loading ? "rgba(99, 102, 241, 0.5)" : "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                            background: loading ? "#999" : "#000",
                             color: "#fff", fontSize: "0.9375rem", fontWeight: 700, border: "none",
                             cursor: loading ? "not-allowed" : "pointer",
-                            boxShadow: "0 4px 16px rgba(99, 102, 241, 0.3)",
+                            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
                             display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
                         }}
                     >
@@ -175,9 +168,9 @@ function Register({ onRegister, onGoLogin, onSwitchToLogin, showToast }) {
                 </form>
 
                 <div style={{ textAlign: "center", marginTop: "20px" }}>
-                    <span style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.4)" }}>
+                    <span style={{ fontSize: "0.8125rem", color: "#666" }}>
                         Already have an account?{" "}
-                        <button onClick={onSwitchToLogin || onGoLogin} style={{ background: "none", border: "none", color: "#818cf8", fontWeight: 600, cursor: "pointer", fontSize: "0.8125rem" }}>
+                        <button onClick={onSwitchToLogin || onGoLogin} style={{ background: "none", border: "none", color: "#000", fontWeight: 600, cursor: "pointer", textDecoration: "underline", fontSize: "0.8125rem" }}>
                             Sign in
                         </button>
                     </span>

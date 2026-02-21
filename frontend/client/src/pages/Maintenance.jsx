@@ -178,13 +178,13 @@ function Maintenance({ showToast, role }) {
                                 <input id="m-odo" type="number" min="0" value={form.odometer_at_service} onChange={(e) => setF("odometer_at_service", e.target.value)} placeholder="Auto-filled" className={errors.odometer_at_service ? "error-field" : ""} />
                             </FormField>
                         </div>
-                        <div style={{ background: "var(--color-info-bg)", border: "1px solid var(--color-info-border)", borderRadius: "6px", padding: "8px 12px", marginBottom: "12px", fontSize: "0.75rem", color: "#0369a1" }}>
+                        <div style={{ background: "var(--color-info-bg)", border: "1px solid var(--color-info-border)", borderRadius: "6px", padding: "8px 12px", marginBottom: "12px", fontSize: "0.75rem", color: "var(--color-text-primary)" }}>
                             <strong>Note:</strong> Adding a service log will automatically set the vehicle status to "In Shop".
                         </div>
                         <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "8px" }}>
                             <button type="button" onClick={() => { setShowModal(false); setForm(EMPTY); setErrors({}); }}
                                 style={{ padding: "9px 18px", border: "1px solid var(--color-border)", borderRadius: "6px", background: "var(--color-surface)", color: "var(--color-text-secondary)", fontWeight: 500, cursor: "pointer" }}>Cancel</button>
-                            <button type="submit" disabled={saving} style={{ padding: "9px 20px", background: saving ? "#93c5fd" : "#1d4ed8", color: "#fff", border: "none", borderRadius: "6px", fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
+                            <button type="submit" disabled={saving} style={{ padding: "9px 20px", background: saving ? "#999" : "var(--color-primary)", color: "var(--color-surface)", border: "none", borderRadius: "6px", fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
                                 {saving ? "Saving…" : "Save Service"}
                             </button>
                         </div>

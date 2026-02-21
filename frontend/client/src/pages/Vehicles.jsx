@@ -176,7 +176,7 @@ function Vehicles({ showToast, role }) {
                                 Cancel
                             </button>
                             <button type="submit" disabled={saving}
-                                style={{ padding: "9px 20px", background: saving ? "#93c5fd" : "#1d4ed8", color: "#fff", border: "none", borderRadius: "6px", fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
+                                style={{ padding: "9px 20px", background: saving ? "#999" : "var(--color-primary)", color: "var(--color-surface)", border: "none", borderRadius: "6px", fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
                                 {saving ? "Saving…" : "Save Vehicle"}
                             </button>
                         </div>

@@ -15,7 +15,7 @@ function BarChart({ data }) {
                     <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
                         <div style={{ width: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "110px", gap: "2px" }}>
                             <div title={`Revenue: ₹${rev.toLocaleString()}`} style={{ width: "100%", height: `${(rev / maxVal) * 100}px`, background: "var(--color-primary)", borderRadius: "3px 3px 0 0", minHeight: "4px" }} />
-                            <div title={`Fuel: ₹${fuel.toLocaleString()}`} style={{ width: "100%", height: `${(fuel / maxVal) * 100}px`, background: "#f59e0b", borderRadius: "3px 3px 0 0", minHeight: "3px" }} />
+                            <div title={`Fuel: ₹${fuel.toLocaleString()}`} style={{ width: "100%", height: `${(fuel / maxVal) * 100}px`, background: "#555", borderRadius: "3px 3px 0 0", minHeight: "3px" }} />
                         </div>
                         <span style={{ fontSize: "0.6rem", color: "var(--color-text-muted)", textAlign: "center" }}>{d.month_name ? d.month_name.slice(0, 3) : `M${d.month || i + 1}`}</span>
                     </div>
@@ -87,9 +87,9 @@ function Analytics({ showToast, role }) {
 
             {/* KPI Cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
-                <Card title="Avg. Fuel Efficiency" value={avgFuelEff > 0 ? `${avgFuelEff.toFixed(1)} km/L` : "—"} subtitle="across all vehicles" icon="⛽" color="#0284c7" />
-                <Card title="Avg. Fleet ROI" value={avgROI ? `${(avgROI * 100).toFixed(1)}%` : "—"} subtitle="revenue vs. cost" icon="📈" color="#16a34a" />
-                <Card title="YTD Fuel Cost" value={`₹${(ytdFuel / 100000).toFixed(2)}L`} subtitle={`₹${ytdFuel.toLocaleString()} total`} icon="🛢️" color="#d97706" />
+                <Card title="Avg. Fuel Efficiency" value={avgFuelEff > 0 ? `${avgFuelEff.toFixed(1)} km/L` : "—"} subtitle="across all vehicles" icon="⛽" />
+                <Card title="Avg. Fleet ROI" value={avgROI ? `${(avgROI * 100).toFixed(1)}%` : "—"} subtitle="revenue vs. cost" icon="📈" />
+                <Card title="YTD Fuel Cost" value={`₹${(ytdFuel / 100000).toFixed(2)}L`} subtitle={`₹${ytdFuel.toLocaleString()} total`} icon="🛢️" />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
@@ -99,7 +99,7 @@ function Analytics({ showToast, role }) {
                         <h3 style={{ fontSize: "0.9375rem", fontWeight: 700 }}>Revenue vs. Fuel Cost</h3>
                         <div style={{ display: "flex", gap: "12px", fontSize: "0.6875rem", color: "var(--color-text-secondary)" }}>
                             <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "2px", background: "var(--color-primary)", display: "inline-block" }} />Revenue</span>
-                            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#f59e0b", display: "inline-block" }} />Fuel</span>
+                            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><span style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#555", display: "inline-block" }} />Fuel</span>
                         </div>
                     </div>
                     <div style={{ padding: "20px" }}>
@@ -124,7 +124,7 @@ function Analytics({ showToast, role }) {
                                     <div key={i} style={{ padding: "12px 20px", borderBottom: i < 4 ? "1px solid var(--color-border)" : "none" }}>
                                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                                             <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text-primary)" }}>{v.name_model}</span>
-                                            <span style={{ fontSize: "0.8125rem", fontWeight: 700, color: Number(roi) >= 0 ? "#16a34a" : "#dc2626" }}>
+                                            <span style={{ fontSize: "0.8125rem", fontWeight: 700, color: "var(--color-text-primary)" }}>
                                                 {roi !== "—" ? `ROI ${roi}%` : "—"}
                                             </span>
                                         </div>
@@ -166,8 +166,8 @@ function Analytics({ showToast, role }) {
                                 return (
                                     <tr key={i}>
                                         <td style={{ fontWeight: 500 }}>{d.month_name || `Month ${d.month}`}</td>
-                                        <td style={{ textAlign: "right", color: "#dc2626" }}>₹{fuelCost.toLocaleString()}</td>
-                                        <td style={{ textAlign: "right", color: "#d97706" }}>₹{maintCost.toLocaleString()}</td>
+                                        <td style={{ textAlign: "right", color: "var(--color-text-primary)" }}>₹{fuelCost.toLocaleString()}</td>
+                                        <td style={{ textAlign: "right", color: "var(--color-text-secondary)" }}>₹{maintCost.toLocaleString()}</td>
                                         <td style={{ textAlign: "right", fontWeight: 600 }}>₹{total.toLocaleString()}</td>
                                     </tr>
                                 );
@@ -176,8 +176,8 @@ function Analytics({ showToast, role }) {
                         <tfoot>
                             <tr style={{ background: "var(--color-surface-raised)", borderTop: "2px solid var(--color-border)" }}>
                                 <td style={{ fontWeight: 700, padding: "12px 14px" }}>YTD Total</td>
-                                <td style={{ textAlign: "right", fontWeight: 700, color: "#dc2626", padding: "12px 14px" }}>₹{ytdFuel.toLocaleString()}</td>
-                                <td style={{ textAlign: "right", fontWeight: 700, color: "#d97706", padding: "12px 14px" }}>₹{Number(ytdSummary.ytd_maint_cost || 0).toLocaleString()}</td>
+                                <td style={{ textAlign: "right", fontWeight: 700, color: "var(--color-text-primary)", padding: "12px 14px" }}>₹{ytdFuel.toLocaleString()}</td>
+                                <td style={{ textAlign: "right", fontWeight: 700, color: "var(--color-text-secondary)", padding: "12px 14px" }}>₹{Number(ytdSummary.ytd_maint_cost || 0).toLocaleString()}</td>
                                 <td style={{ textAlign: "right", fontWeight: 800, padding: "12px 14px" }}>₹{Number(ytdSummary.ytd_total_cost || 0).toLocaleString()}</td>
                             </tr>
                         </tfoot>

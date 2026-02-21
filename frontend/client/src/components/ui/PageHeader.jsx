@@ -37,7 +37,7 @@ function PageHeader({
                         style={{
                             padding: "9px 18px",
                             background: "var(--color-primary)",
-                            color: "#fff",
+                            color: "var(--color-surface)",
                             border: "none",
                             borderRadius: "6px",
                             fontWeight: 600,

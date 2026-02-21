@@ -68,10 +68,10 @@ function Dashboard({ showToast, role }) {
 
             {/* KPI Cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
-                <Card title="Total Vehicles" value={kpis.totalVehicles} subtitle={`${kpis.available} available`} icon="🚛" color="#6366f1" />
-                <Card title="Active Trips" value={kpis.onTrip} subtitle={`${kpis.completed} completed`} icon="🗺️" color="#10b981" />
-                <Card title="Drivers On Duty" value={kpis.onDuty} subtitle={`${kpis.totalDrivers} total drivers`} icon="👤" color="#f59e0b" />
-                <Card title="Critical Alerts" value={kpis.criticalAlerts} subtitle={`${alerts.length} unresolved`} icon="🔔" color={kpis.criticalAlerts > 0 ? "#ef4444" : "#10b981"} />
+                <Card title="Total Vehicles" value={kpis.totalVehicles} subtitle={`${kpis.available} available`} icon="🚛" />
+                <Card title="Active Trips" value={kpis.onTrip} subtitle={`${kpis.completed} completed`} icon="🗺️" />
+                <Card title="Drivers On Duty" value={kpis.onDuty} subtitle={`${kpis.totalDrivers} total drivers`} icon="👤" />
+                <Card title="Critical Alerts" value={kpis.criticalAlerts} subtitle={`${alerts.length} unresolved`} icon="🔔" />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>

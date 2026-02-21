@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useRef } from "react";
 
+/* White/black theme: toast text uses primary/muted */
 const TOAST_STYLES = {
-    success: { bg: "var(--color-success-bg)", border: "var(--color-success-border)", text: "#16a34a", icon: "✓" },
-    error: { bg: "var(--color-danger-bg)", border: "var(--color-danger-border)", text: "#dc2626", icon: "✕" },
-    warning: { bg: "var(--color-warning-bg)", border: "var(--color-warning-border)", text: "#b45309", icon: "⚠" },
-    info: { bg: "var(--color-info-bg)", border: "var(--color-info-border)", text: "#0284c7", icon: "ℹ" },
+    success: { bg: "var(--color-success-bg)", border: "var(--color-success-border)", text: "var(--color-text-primary)", icon: "✓" },
+    error: { bg: "var(--color-danger-bg)", border: "var(--color-danger-border)", text: "var(--color-text-primary)", icon: "✕" },
+    warning: { bg: "var(--color-warning-bg)", border: "var(--color-warning-border)", text: "var(--color-text-secondary)", icon: "⚠" },
+    info: { bg: "var(--color-info-bg)", border: "var(--color-info-border)", text: "var(--color-text-primary)", icon: "ℹ" },
 };
 
 function Toast({ message, type = "info", onDismiss }) {

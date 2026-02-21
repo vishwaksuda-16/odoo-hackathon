@@ -111,13 +111,13 @@ function Topbar({ currentPage, user, onToggleSidebar, onToggleTheme, darkMode, o
                             width: "30px",
                             height: "30px",
                             borderRadius: "50%",
-                            background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                            background: "var(--color-primary)",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             fontWeight: 700,
                             fontSize: "0.6875rem",
-                            color: "#fff",
+                            color: "var(--color-surface)",
                             flexShrink: 0,
                         }}
                     >

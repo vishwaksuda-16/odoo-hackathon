@@ -47,15 +47,15 @@ function Sidebar({ currentPage, onNavigate, collapsed, allowedPages = [] }) {
                         width: "36px",
                         height: "36px",
                         borderRadius: "10px",
-                        background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                        background: "#fff",
+                        color: "#000",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         fontSize: "18px",
                         fontWeight: 900,
-                        color: "#fff",
                         flexShrink: 0,
-                        boxShadow: "0 2px 8px rgba(99, 102, 241, 0.35)",
+                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
                     }}
                 >
                     F
@@ -66,7 +66,7 @@ function Sidebar({ currentPage, onNavigate, collapsed, allowedPages = [] }) {
                             style={{
                                 fontSize: "1.0625rem",
                                 fontWeight: 800,
-                                color: "#fff",
+                                color: "var(--sidebar-text-active)",
                                 letterSpacing: "-0.02em",
                                 lineHeight: 1.2,
                             }}
@@ -159,8 +159,8 @@ function Sidebar({ currentPage, onNavigate, collapsed, allowedPages = [] }) {
                                         width: collapsed ? "20px" : "3px",
                                         height: collapsed ? "3px" : "20px",
                                         borderRadius: "2px",
-                                        background: "var(--color-primary)",
-                                        boxShadow: "0 0 6px var(--color-primary-glow)",
+                                        background: "var(--sidebar-text-active)",
+                                        boxShadow: "0 0 6px rgba(255,255,255,0.2)",
                                     }}
                                 />
                             )}
@@ -195,8 +195,8 @@ function Sidebar({ currentPage, onNavigate, collapsed, allowedPages = [] }) {
                                 width: "8px",
                                 height: "8px",
                                 borderRadius: "50%",
-                                background: "#10b981",
-                                boxShadow: "0 0 6px rgba(16, 185, 129, 0.5)",
+                                background: "#fff",
+                                boxShadow: "0 0 6px rgba(255, 255, 255, 0.4)",
                             }}
                         />
                         <span style={{ fontSize: "0.6875rem", color: "var(--sidebar-text)", opacity: 0.7 }}>

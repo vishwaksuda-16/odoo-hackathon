@@ -67,7 +67,7 @@ function Drivers({ showToast, role }) {
         <div>
             {/* Expired license alert */}
             {expiredCount > 0 && (
-                <div role="alert" style={{ background: "var(--color-danger-bg)", border: "1px solid var(--color-danger-border)", borderRadius: "8px", padding: "11px 16px", marginBottom: "16px", fontSize: "0.875rem", color: "#b91c1c", display: "flex", gap: "10px", alignItems: "center" }}>
+                <div role="alert" style={{ background: "var(--color-danger-bg)", border: "1px solid var(--color-danger-border)", borderRadius: "8px", padding: "11px 16px", marginBottom: "16px", fontSize: "0.875rem", color: "var(--color-text-primary)", display: "flex", gap: "10px", alignItems: "center" }}>
                     <span style={{ fontWeight: 700 }}>⚠</span>
                     <span>
                         <strong>Compliance Alert:</strong> {expiredCount} driver(s) have expired licenses. Assignment to new trips has been blocked until resolved.
@@ -116,7 +116,7 @@ function Drivers({ showToast, role }) {
                                                     background: expired || isSuspended ? "var(--color-danger-bg)" : "var(--color-primary-light)",
                                                     display: "flex", alignItems: "center", justifyContent: "center",
                                                     fontWeight: 700, fontSize: "13px",
-                                                    color: expired || isSuspended ? "#b91c1c" : "var(--color-primary)",
+                                                    color: expired || isSuspended ? "var(--color-text-primary)" : "var(--color-primary)",
                                                     flexShrink: 0,
                                                 }}>
                                                     {d.name.charAt(0)}
@@ -126,13 +126,13 @@ function Drivers({ showToast, role }) {
                                         </td>
                                         <td style={{ textTransform: "capitalize", color: "var(--color-text-secondary)" }}>{d.license_category}</td>
                                         <td>
-                                            <span style={{ color: expired ? "#dc2626" : expiring ? "#b45309" : "var(--color-text-secondary)", fontWeight: expired || expiring ? 600 : 400 }}>
+                                            <span style={{ color: expired || expiring ? "var(--color-text-primary)" : "var(--color-text-secondary)", fontWeight: expired || expiring ? 600 : 400 }}>
                                                 {d.license_expiry ? new Date(d.license_expiry).toLocaleDateString() : "—"}
-                                                {expired && <span style={{ marginLeft: "6px", fontSize: "0.7rem", background: "var(--color-danger-bg)", border: "1px solid var(--color-danger-border)", color: "#b91c1c", borderRadius: "4px", padding: "1px 5px" }}>Expired</span>}
-                                                {!expired && expiring && <span style={{ marginLeft: "6px", fontSize: "0.7rem", background: "var(--color-warning-bg)", border: "1px solid var(--color-warning-border)", color: "#b45309", borderRadius: "4px", padding: "1px 5px" }}>Expiring Soon</span>}
+                                                {expired && <span style={{ marginLeft: "6px", fontSize: "0.7rem", background: "var(--color-danger-bg)", border: "1px solid var(--color-danger-border)", color: "var(--color-text-primary)", borderRadius: "4px", padding: "1px 5px" }}>Expired</span>}
+                                                {!expired && expiring && <span style={{ marginLeft: "6px", fontSize: "0.7rem", background: "var(--color-warning-bg)", border: "1px solid var(--color-warning-border)", color: "var(--color-text-secondary)", borderRadius: "4px", padding: "1px 5px" }}>Expiring Soon</span>}
                                             </span>
                                         </td>
-                                        <td><ScoreBar value={d.safety_score} color={d.safety_score >= 80 ? "var(--color-primary)" : "#dc2626"} /></td>
+                                        <td><ScoreBar value={d.safety_score} color={d.safety_score >= 80 ? "var(--color-primary)" : "var(--color-text-muted)"} /></td>
                                         <td><StatusPill status={d.status} /></td>
                                     </tr>
                                 );

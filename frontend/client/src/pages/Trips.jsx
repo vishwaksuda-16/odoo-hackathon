@@ -197,14 +197,14 @@ function Trips({ showToast, role }) {
                             <input id="t-weight" type="number" min="1" value={form.cargo_weight_kg} onChange={(e) => setF("cargo_weight_kg", e.target.value)} placeholder="e.g. 12000" className={errors.cargo_weight_kg ? "error-field" : ""} />
                         </FormField>
                         {weightWarning && (
-                            <div role="alert" style={{ background: "var(--color-warning-bg)", border: "1px solid var(--color-warning-border)", borderRadius: "6px", padding: "9px 12px", marginBottom: "12px", fontSize: "0.8125rem", color: "#b45309" }}>
+                            <div role="alert" style={{ background: "var(--color-warning-bg)", border: "1px solid var(--color-warning-border)", borderRadius: "6px", padding: "9px 12px", marginBottom: "12px", fontSize: "0.8125rem", color: "var(--color-text-primary)" }}>
                                 ⚠ {weightWarning}
                             </div>
                         )}
                         <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "8px" }}>
                             <button type="button" onClick={() => { setShowModal(false); setForm(EMPTY); setErrors({}); setWeightWarning(""); }}
                                 style={{ padding: "9px 18px", border: "1px solid var(--color-border)", borderRadius: "6px", background: "var(--color-surface)", color: "var(--color-text-secondary)", fontWeight: 500, cursor: "pointer" }}>Cancel</button>
-                            <button type="submit" disabled={saving} style={{ padding: "9px 20px", background: saving ? "#93c5fd" : "#1d4ed8", color: "#fff", border: "none", borderRadius: "6px", fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
+                            <button type="submit" disabled={saving} style={{ padding: "9px 20px", background: saving ? "#999" : "var(--color-primary)", color: "var(--color-surface)", border: "none", borderRadius: "6px", fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
                                 {saving ? "Creating…" : "Dispatch Trip"}
                             </button>
                         </div>

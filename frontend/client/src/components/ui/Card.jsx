@@ -42,7 +42,8 @@ function Card({ title, value, subtitle, icon, color = "var(--color-primary)", tr
             <div
                 style={{
                     width: "44px", height: "44px", borderRadius: "12px",
-                    background: `${color}14`,
+                    background: "var(--color-primary-light)",
+                    color: "var(--color-text-primary)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: "22px", flexShrink: 0,
                 }}

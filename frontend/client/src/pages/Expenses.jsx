@@ -97,8 +97,8 @@ function Expenses({ showToast, role }) {
                                         <td style={{ fontWeight: 500 }}>{r.name_model}</td>
                                         <td style={{ fontFamily: "monospace", fontSize: "0.8125rem", color: "var(--color-text-secondary)" }}>{r.license_plate}</td>
                                         <td style={{ textAlign: "right" }}>{Number(r.total_liters || 0).toLocaleString()}</td>
-                                        <td style={{ textAlign: "right", color: "#dc2626" }}>₹{fuelCost.toLocaleString()}</td>
-                                        <td style={{ textAlign: "right", color: "#d97706" }}>₹{maintCost.toLocaleString()}</td>
+                                        <td style={{ textAlign: "right", color: "var(--color-text-primary)" }}>₹{fuelCost.toLocaleString()}</td>
+                                        <td style={{ textAlign: "right", color: "var(--color-text-secondary)" }}>₹{maintCost.toLocaleString()}</td>
                                         <td style={{ textAlign: "right" }}>{r.km_per_liter ? Number(r.km_per_liter).toFixed(1) : "—"}</td>
                                         <td style={{ textAlign: "right" }}>{r.cost_per_km ? `₹${Number(r.cost_per_km).toFixed(2)}` : "—"}</td>
                                         <td style={{ textAlign: "right", fontWeight: 600 }}>₹{total.toLocaleString()}</td>
