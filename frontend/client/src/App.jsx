@@ -5,6 +5,7 @@ import Vehicles from "./pages/Vehicles";
 import Trips from "./pages/Trips";
 import Maintenance from "./pages/Maintenance";
 import Expenses from "./pages/Expenses";
+import Drivers from "./pages/Drivers";
 
 function App() {
   const [page, setPage] = useState("dashboard");
@@ -16,6 +17,7 @@ function App() {
       {page === "trips" && <Trips />}
       {page === "maintenance" && <Maintenance />}
       {page === "expenses" && <Expenses />}
+      {page === "drivers" && <Drivers />}
     </Layout>
   );
 }
