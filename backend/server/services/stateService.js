@@ -1,23 +1,17 @@
 import pool, { withSerializableTransaction } from '../config/db.js';
 
-// ─────────────────────────────────────────────────────────────────
-//  FINITE STATE MACHINE — TRANSITION ALLOWLISTS
-//  These mirror the PostgreSQL trigger rules exactly.
-//  The app-layer check catches bad calls early (better error messages).
-//  The DB trigger is the hard stop that survives any app bug.
-// ─────────────────────────────────────────────────────────────────
 const VEHICLE_TRANSITIONS = {
     available: ['on_trip', 'in_shop', 'retired'],
     on_trip: ['available'],
     in_shop: ['available', 'retired'],
-    retired: [],   // terminal
+    retired: [],
 };
 
 const DRIVER_TRANSITIONS = {
     off_duty: ['on_duty'],
     on_duty: ['on_trip', 'off_duty', 'suspended'],
     on_trip: ['on_duty'],
-    suspended: [],   // terminal — admin resets directly
+    suspended: [],
 };
 
 const TRIP_TRANSITIONS = {
@@ -38,10 +32,6 @@ function guard(map, entity, from, to) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  AUDIT LOGGER — always writes in the same transaction so audit
-//  entries are rolled back if the operation fails.
-// ─────────────────────────────────────────────────────────────────
 async function audit(db, entityType, entityId, action, performedBy, metadata) {
     try {
         await db.query(
@@ -51,16 +41,9 @@ async function audit(db, entityType, entityId, action, performedBy, metadata) {
                 metadata ? JSON.stringify(metadata) : null]
         );
     } catch (e) {
-        // Log but never let an audit failure break the main operation
         console.error('[StateService] audit write failed:', e.message);
     }
 }
-
-// ─────────────────────────────────────────────────────────────────
-//  CORE TRANSITION FUNCTIONS
-//  All require an explicit `client` — callers MUST open a transaction.
-//  This prevents accidental use outside a transaction context.
-// ─────────────────────────────────────────────────────────────────
 
 async function _transitionVehicle(vehicleId, toStatus, client, performedBy) {
     const { rows } = await client.query(
@@ -109,17 +92,12 @@ async function _transitionTrip(tripId, toStatus, client, performedBy) {
     return { tripId, from, to: toStatus };
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  PUBLIC API
-// ─────────────────────────────────────────────────────────────────
 export const StateService = {
 
-    // ── Individual transitions (for code that manages its own client) ─
     transitionVehicle: _transitionVehicle,
     transitionDriver: _transitionDriver,
     transitionTrip: _transitionTrip,
 
-    // ── Convenience shorthands ────────────────────────────────────
     moveToShop(vehicleId, client, performedBy = null) {
         return _transitionVehicle(vehicleId, 'in_shop', client, performedBy);
     },
@@ -127,11 +105,6 @@ export const StateService = {
         return _transitionVehicle(vehicleId, 'retired', client, performedBy);
     },
 
-    // ── DISPATCH — SERIALIZABLE transaction ───────────────────────
-    //  Uses SERIALIZABLE isolation so two concurrent dispatches of the
-    //  same vehicle/driver cannot both succeed, even if they pass the
-    //  application-layer checks simultaneously. Combined with the
-    //  partial unique index on trips, this is bulletproof.
     async dispatchTrip(vehicleId, driverId, tripId, performedBy = null) {
         return withSerializableTransaction(async (client) => {
             await _transitionVehicle(vehicleId, 'on_trip', client, performedBy);
@@ -140,14 +113,12 @@ export const StateService = {
         });
     },
 
-    // ── Overload: join a caller-provided transaction ──────────────
     async dispatchTripInTx(vehicleId, driverId, tripId, client, performedBy = null) {
         await _transitionVehicle(vehicleId, 'on_trip', client, performedBy);
         await _transitionDriver(driverId, 'on_trip', client, performedBy);
         await _transitionTrip(tripId, 'dispatched', client, performedBy);
     },
 
-    // ── COMPLETE ─────────────────────────────────────────────────
     async completeTripInTx(vehicleId, driverId, tripId, newOdometer, client, performedBy = null) {
         await _transitionVehicle(vehicleId, 'available', client, performedBy);
         await client.query(
@@ -158,14 +129,11 @@ export const StateService = {
         await _transitionTrip(tripId, 'completed', client, performedBy);
     },
 
-    // ── CANCEL ───────────────────────────────────────────────────
     async cancelTripInTx(vehicleId, driverId, tripId, client, performedBy = null) {
-        // Vehicle: release only if it's currently on_trip (might be cancelled before dispatch)
         const vRes = await client.query('SELECT status FROM vehicles WHERE id = $1 FOR UPDATE NOWAIT', [vehicleId]);
         if (vRes.rows[0]?.status === 'on_trip') {
             await _transitionVehicle(vehicleId, 'available', client, performedBy);
         }
-        // Driver: release only if on_trip
         const dRes = await client.query('SELECT status FROM drivers WHERE id = $1 FOR UPDATE NOWAIT', [driverId]);
         if (dRes.rows[0]?.status === 'on_trip') {
             await _transitionDriver(driverId, 'on_duty', client, performedBy);
@@ -173,7 +141,6 @@ export const StateService = {
         await _transitionTrip(tripId, 'cancelled', client, performedBy);
     },
 
-    // ── MAINTENANCE ALERT ─────────────────────────────────────────
     async checkMaintenanceAlert(vehicleId) {
         const { rows } = await pool.query(
             'SELECT odometer, service_due_km, name_model, license_plate FROM vehicles WHERE id = $1',

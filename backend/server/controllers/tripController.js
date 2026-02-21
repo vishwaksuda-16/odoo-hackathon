@@ -1,17 +1,107 @@
 import pool, { withTransaction } from '../config/db.js';
 import { StateService } from '../services/stateService.js';
 
-// ─────────────────────────────────────────────────────────────────
-//  DISPATCH Trip
-//
-//  Locking order is always: vehicle → driver → trip (alphabetical by
-//  table name) to prevent deadlocks across concurrent transactions.
-//
-//  Double-dispatch is prevented at three layers:
-//    1. Partial unique index on trips(vehicle_id) WHERE active
-//    2. FOR UPDATE NOWAIT row lock (fails instantly if locked)
-//    3. SERIALIZABLE isolation in dispatchTripInTx (via stateService)
-// ─────────────────────────────────────────────────────────────────
+export const getTrips = async (req, res) => {
+    const { status, vehicle_id, driver_id, limit = 50, offset = 0 } = req.query;
+
+    const conditions = [];
+    const params = [];
+
+    if (status) {
+        params.push(status);
+        conditions.push(`t.status = $${params.length}`);
+    }
+    if (vehicle_id) {
+        params.push(parseInt(vehicle_id, 10));
+        conditions.push(`t.vehicle_id = $${params.length}`);
+    }
+    if (driver_id) {
+        params.push(parseInt(driver_id, 10));
+        conditions.push(`t.driver_id = $${params.length}`);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    try {
+        const { rows } = await pool.query(
+            `SELECT
+                t.*,
+                v.name_model        AS vehicle_name,
+                v.license_plate,
+                v.vehicle_class,
+                v.region,
+                d.name              AS driver_name,
+                d.safety_score,
+                fl.liters,
+                fl.fuel_cost
+             FROM trips t
+             JOIN vehicles v    ON v.id = t.vehicle_id
+             JOIN drivers  d    ON d.id = t.driver_id
+             LEFT JOIN fuel_logs fl ON fl.trip_id = t.id
+             ${where}
+             ORDER BY t.created_at DESC
+             LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+            [...params, parseInt(limit, 10), parseInt(offset, 10)]
+        );
+
+        const { rows: total } = await pool.query(
+            `SELECT COUNT(*) FROM trips t ${where}`, params
+        );
+
+        return res.json({
+            success: true,
+            total: parseInt(total[0].count, 10),
+            trips: rows,
+        });
+    } catch (e) {
+        console.error('[getTrips]', e.message);
+        return res.status(500).json({ success: false, error: e.message });
+    }
+};
+
+export const getTripById = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { rows } = await pool.query(
+            `SELECT
+                t.*,
+                v.name_model, v.license_plate, v.vehicle_class, v.region,
+                d.name AS driver_name, d.safety_score,
+                fl.liters, fl.fuel_cost, fl.log_date AS fuel_date
+             FROM trips t
+             JOIN vehicles v    ON v.id = t.vehicle_id
+             JOIN drivers  d    ON d.id = t.driver_id
+             LEFT JOIN fuel_logs fl ON fl.trip_id = t.id
+             WHERE t.id = $1`,
+            [id]
+        );
+        if (rows.length === 0)
+            return res.status(404).json({ success: false, message: 'Trip not found.' });
+        return res.json({ success: true, trip: rows[0] });
+    } catch (e) {
+        return res.status(500).json({ success: false, error: e.message });
+    }
+};
+
+export const getPendingCargo = async (req, res) => {
+    try {
+        const { rows } = await pool.query(
+            `SELECT
+                t.*,
+                v.name_model, v.license_plate, v.max_load_kg,
+                d.name AS driver_name
+             FROM trips t
+             JOIN vehicles v ON v.id = t.vehicle_id
+             JOIN drivers  d ON d.id = t.driver_id
+             WHERE t.status = 'draft'
+             ORDER BY t.created_at ASC`
+        );
+        return res.json({ success: true, count: rows.length, pending: rows });
+    } catch (e) {
+        return res.status(500).json({ success: false, error: e.message });
+    }
+};
+
 export const createTrip = async (req, res) => {
     const { vehicle_id, driver_id, cargo_weight_kg } = req.body;
     const performedBy = req.user?.id ?? null;
@@ -19,7 +109,6 @@ export const createTrip = async (req, res) => {
     try {
         const trip = await withTransaction(async (client) => {
 
-            // ── 1. Lock & validate vehicle (FOR UPDATE NOWAIT) ────
             const vehicleRes = await client.query(
                 `SELECT id, status, max_load_kg, odometer, vehicle_class
                  FROM vehicles WHERE id = $1 FOR UPDATE NOWAIT`,
@@ -29,7 +118,6 @@ export const createTrip = async (req, res) => {
                 new Error('VEHICLE_NOT_FOUND'), { httpStatus: 404 }
             );
 
-            // ── 2. Lock & validate driver ─────────────────────────
             const driverRes = await client.query(
                 `SELECT id, status, license_expiry, license_category
                  FROM drivers WHERE id = $1 FOR UPDATE NOWAIT`,
@@ -42,43 +130,30 @@ export const createTrip = async (req, res) => {
             const vehicle = vehicleRes.rows[0];
             const driver = driverRes.rows[0];
 
-            // ── 3. Business rule validation (inside transaction) ──
             if (vehicle.status !== 'available') throw Object.assign(
-                new Error('VEHICLE_NOT_AVAILABLE'), {
-                    httpStatus: 409,
-                detail: `Vehicle is '${vehicle.status}'.`
-            }
+                new Error('VEHICLE_NOT_AVAILABLE'), { httpStatus: 409, detail: `Vehicle is '${vehicle.status}'.` }
             );
             if (driver.status === 'suspended') throw Object.assign(
                 new Error('DRIVER_SUSPENDED'), { httpStatus: 409 }
             );
             if (driver.status !== 'on_duty') throw Object.assign(
-                new Error('DRIVER_NOT_ON_DUTY'), {
-                    httpStatus: 409,
-                detail: `Driver is '${driver.status}'.`
-            }
+                new Error('DRIVER_NOT_ON_DUTY'), { httpStatus: 409, detail: `Driver is '${driver.status}'.` }
             );
             if (new Date(driver.license_expiry) < new Date()) throw Object.assign(
-                new Error('LICENSE_EXPIRED'), {
-                    httpStatus: 422,
-                detail: `Expired on ${driver.license_expiry}.`
-            }
+                new Error('LICENSE_EXPIRED'), { httpStatus: 422, detail: `Expired on ${driver.license_expiry}.` }
             );
             if (driver.license_category && vehicle.vehicle_class &&
                 driver.license_category !== vehicle.vehicle_class) throw Object.assign(
                     new Error('LICENSE_CATEGORY_MISMATCH'), {
-                        httpStatus: 422,
-                    detail: `Driver '${driver.license_category}' ≠ vehicle '${vehicle.vehicle_class}'.`
+                    httpStatus: 422, detail: `Driver '${driver.license_category}' ≠ vehicle '${vehicle.vehicle_class}'.`
                 }
                 );
             if (parseFloat(cargo_weight_kg) > parseFloat(vehicle.max_load_kg)) throw Object.assign(
                 new Error('CARGO_EXCEEDS_CAPACITY'), {
-                    httpStatus: 422,
-                detail: `${cargo_weight_kg}kg > ${vehicle.max_load_kg}kg.`
+                httpStatus: 422, detail: `${cargo_weight_kg}kg > ${vehicle.max_load_kg}kg.`
             }
             );
 
-            // ── 4. Insert trip in 'draft' state ───────────────────
             const tripRes = await client.query(
                 `INSERT INTO trips
                    (vehicle_id, driver_id, cargo_weight_kg, status, start_odometer, created_by)
@@ -88,12 +163,8 @@ export const createTrip = async (req, res) => {
             );
             const tripId = tripRes.rows[0].id;
 
-            // ── 5. Atomic state transitions ───────────────────────
-            //  dispatchTripInTx: vehicle→on_trip, driver→on_trip, trip→dispatched
-            //  DB trigger automatically sets dispatched_at = NOW()
             await StateService.dispatchTripInTx(vehicle_id, driver_id, tripId, client, performedBy);
 
-            // Audit trip creation
             await client.query(
                 `INSERT INTO audit_logs (entity_type, entity_id, action, performed_by, metadata)
                  VALUES ('trip', $1, 'trip_created', $2, $3)`,
@@ -103,11 +174,9 @@ export const createTrip = async (req, res) => {
             return { ...tripRes.rows[0], status: 'dispatched' };
         });
 
-        // Non-blocking maintenance check after commit
         StateService.checkMaintenanceAlert(vehicle_id).then(a => {
             if (a?.alert) console.warn(
-                `[ALERT] Vehicle ${vehicle_id} overdue for service ` +
-                `(odometer=${a.odometer} >= due=${a.service_due_km})`
+                `[ALERT] Vehicle ${vehicle_id} overdue for service (odometer=${a.odometer} >= due=${a.service_due_km})`
             );
         }).catch(() => { });
 
@@ -118,9 +187,6 @@ export const createTrip = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────
-//  COMPLETE Trip
-// ─────────────────────────────────────────────────────────────────
 export const completeTrip = async (req, res) => {
     const { trip_id, final_odometer, liters, fuel_cost } = req.body;
     const performedBy = req.user?.id ?? null;
@@ -128,44 +194,32 @@ export const completeTrip = async (req, res) => {
     try {
         await withTransaction(async (client) => {
 
-            // Lock trip row
             const tripRes = await client.query(
                 `SELECT vehicle_id, driver_id, status, start_odometer
                  FROM trips WHERE id = $1 FOR UPDATE NOWAIT`,
                 [trip_id]
             );
-            if (tripRes.rowCount === 0) throw Object.assign(
-                new Error('TRIP_NOT_FOUND'), { httpStatus: 404 }
-            );
+            if (tripRes.rowCount === 0) throw Object.assign(new Error('TRIP_NOT_FOUND'), { httpStatus: 404 });
 
             const { vehicle_id, driver_id, status, start_odometer } = tripRes.rows[0];
 
             if (status !== 'dispatched') throw Object.assign(
-                new Error(`TRIP_NOT_DISPATCHED`), {
-                    httpStatus: 409,
-                detail: `Trip is '${status}', expected 'dispatched'.`
-            }
+                new Error(`TRIP_NOT_DISPATCHED`), { httpStatus: 409, detail: `Trip is '${status}'.` }
             );
             if (parseInt(final_odometer) <= parseInt(start_odometer ?? 0)) throw Object.assign(
                 new Error('INVALID_ODOMETER'), {
-                    httpStatus: 422,
-                detail: `final (${final_odometer}) must exceed start (${start_odometer}).`
+                httpStatus: 422, detail: `final (${final_odometer}) must exceed start (${start_odometer}).`
             }
             );
 
-            // Record fuel (DB trigger validates vehicle_id matches and trip is dispatched)
             await client.query(
                 `INSERT INTO fuel_logs (trip_id, vehicle_id, liters, fuel_cost) VALUES ($1, $2, $3, $4)`,
                 [trip_id, vehicle_id, liters, fuel_cost]
             );
-
-            // Set end_odometer (DB CHECK constraint enforces > start_odometer)
             await client.query(
                 `UPDATE trips SET end_odometer = $1 WHERE id = $2`,
                 [final_odometer, trip_id]
             );
-
-            // Atomic state transitions (DB trigger sets completed_at)
             await StateService.completeTripInTx(vehicle_id, driver_id, trip_id, final_odometer, client, performedBy);
         });
 
@@ -176,9 +230,6 @@ export const completeTrip = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────
-//  CANCEL Trip
-// ─────────────────────────────────────────────────────────────────
 export const cancelTrip = async (req, res) => {
     const { trip_id } = req.body;
     const performedBy = req.user?.id ?? null;
@@ -190,20 +241,14 @@ export const cancelTrip = async (req, res) => {
                 `SELECT vehicle_id, driver_id, status FROM trips WHERE id = $1 FOR UPDATE NOWAIT`,
                 [trip_id]
             );
-            if (tripRes.rowCount === 0) throw Object.assign(
-                new Error('TRIP_NOT_FOUND'), { httpStatus: 404 }
-            );
+            if (tripRes.rowCount === 0) throw Object.assign(new Error('TRIP_NOT_FOUND'), { httpStatus: 404 });
 
             const { vehicle_id, driver_id, status } = tripRes.rows[0];
 
             if (!['draft', 'dispatched'].includes(status)) throw Object.assign(
-                new Error('TRIP_NOT_CANCELLABLE'), {
-                    httpStatus: 409,
-                detail: `Cannot cancel a '${status}' trip.`
-            }
+                new Error('TRIP_NOT_CANCELLABLE'), { httpStatus: 409, detail: `Cannot cancel a '${status}' trip.` }
             );
 
-            // DB trigger sets cancelled_at automatically
             await StateService.cancelTripInTx(vehicle_id, driver_id, trip_id, client, performedBy);
         });
 
@@ -214,48 +259,28 @@ export const cancelTrip = async (req, res) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────
-//  ERROR SHAPE NORMALIZER
-//  Maps application errors → structured HTTP responses.
-//  Catches PostgreSQL unique-violation from partial index (double-dispatch).
-// ─────────────────────────────────────────────────────────────────
 function _handleTripError(res, e) {
-    // PostgreSQL unique constraint violation (double-dispatch hit the index)
     if (e.code === '23505') {
         return res.status(409).json({
-            success: false,
-            code: 'DISPATCH_BLOCKED',
-            reason: 'DOUBLE_DISPATCH_PREVENTED',
-            detail: 'Vehicle or driver already has an active trip. Concurrent dispatch attempt rejected by database.',
+            success: false, code: 'DISPATCH_BLOCKED', reason: 'DOUBLE_DISPATCH_PREVENTED',
+            detail: 'Vehicle or driver already has an active trip.',
         });
     }
-    // Lock not available (FOR UPDATE NOWAIT — resource already locked)
     if (e.code === '55P03') {
         return res.status(409).json({
-            success: false,
-            code: 'DISPATCH_BLOCKED',
-            reason: 'RESOURCE_LOCKED',
+            success: false, code: 'DISPATCH_BLOCKED', reason: 'RESOURCE_LOCKED',
             detail: 'Vehicle or driver is currently being processed by another request.',
         });
     }
-    // Serialization failure (SERIALIZABLE transaction conflict)
     if (e.code === '40001') {
         return res.status(409).json({
-            success: false,
-            code: 'DISPATCH_BLOCKED',
-            reason: 'CONCURRENT_MODIFICATION',
+            success: false, code: 'DISPATCH_BLOCKED', reason: 'CONCURRENT_MODIFICATION',
             detail: 'Please retry — a concurrent transaction modified the same resources.',
         });
     }
-    // Application FSM violations
     if (e.code === 'ILLEGAL_STATE_TRANSITION' || e.message?.startsWith('ILLEGAL_')) {
-        return res.status(409).json({
-            success: false,
-            code: 'DISPATCH_BLOCKED',
-            reason: e.message,
-        });
+        return res.status(409).json({ success: false, code: 'DISPATCH_BLOCKED', reason: e.message });
     }
-    // Named domain errors with httpStatus
     const domainErrors = new Set([
         'VEHICLE_NOT_FOUND', 'DRIVER_NOT_FOUND', 'TRIP_NOT_FOUND',
         'VEHICLE_NOT_AVAILABLE', 'DRIVER_SUSPENDED', 'DRIVER_NOT_ON_DUTY',
@@ -264,17 +289,13 @@ function _handleTripError(res, e) {
     ]);
     if (domainErrors.has(e.message)) {
         return res.status(e.httpStatus ?? 422).json({
-            success: false,
-            code: 'DISPATCH_BLOCKED',
-            reason: e.message,
+            success: false, code: 'DISPATCH_BLOCKED', reason: e.message,
             ...(e.detail && { detail: e.detail }),
         });
     }
-    // Unexpected error
     console.error('[tripController]', e.message, e.stack);
     return res.status(500).json({
-        success: false,
-        code: 'INTERNAL_ERROR',
+        success: false, code: 'INTERNAL_ERROR',
         reason: process.env.NODE_ENV === 'production' ? 'An unexpected error occurred.' : e.message,
     });
 }
