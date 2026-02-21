@@ -23,7 +23,9 @@ function Sidebar({ setPage }) {
                 <li onClick={() => setPage("trips")} style={{ cursor: "pointer" }}>
                     Trip Dispatcher
                 </li>
-                <li>Maintenance</li>
+                <li onClick={() => setPage("maintenance")} style={{ cursor: "pointer" }}>
+                    Maintenance
+                </li>
                 <li>Expenses</li>
                 <li>Drivers</li>
                 <li>Analytics</li>

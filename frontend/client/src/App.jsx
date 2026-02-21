@@ -3,6 +3,7 @@ import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import Vehicles from "./pages/Vehicles";
 import Trips from "./pages/Trips";
+import Maintenance from "./pages/Maintenance";
 
 function App() {
   const [page, setPage] = useState("dashboard");
@@ -12,6 +13,7 @@ function App() {
       {page === "dashboard" && <Dashboard />}
       {page === "vehicles" && <Vehicles />}
       {page === "trips" && <Trips />}
+      {page === "maintenance" && <Maintenance />}
     </Layout>
   );
 }
