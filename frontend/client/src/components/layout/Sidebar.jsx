@@ -8,6 +8,7 @@ function Sidebar() {
                 backgroundColor: "#f5f5f5",
                 padding: "16px",
                 borderRight: "1px solid #ddd",
+                color: "#000",          // ✅ ADD THIS
             }}
         >
             <h3 style={{ marginBottom: "16px" }}>FleetFlow</h3>

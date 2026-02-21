@@ -10,6 +10,7 @@ function Topbar() {
                 display: "flex",
                 alignItems: "center",
                 padding: "0 16px",
+                color: "#000",         // ✅ ADD THIS
             }}
         >
             <strong>Dashboard</strong>
