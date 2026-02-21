@@ -1,73 +1,73 @@
-services:
+  services:
 
-  # ── PostgreSQL ──────────────────────────────────────────────────
-  db:
-    image: postgres:16
-    restart: always
-    environment:
-      POSTGRES_USER:     ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-yasir}
-      POSTGRES_DB:       ${DB_NAME:-fleet_management}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    # ── PostgreSQL ──────────────────────────────────────────────────
+    db:
+      image: postgres:16
+      restart: always
+      environment:
+        POSTGRES_USER:     ${DB_USER:-postgres}
+        POSTGRES_PASSWORD: ${DB_PASSWORD:-yasir}
+        POSTGRES_DB:       ${DB_NAME:-fleet_management}
+      ports:
+        - "5432:5432"
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+        - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
 
-  # ── Backend API ─────────────────────────────────────────────────
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: always
-    ports:
-      - "${PORT:-5000}:5000"
-    env_file:
-      - .env
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - .:/app
-      - /app/node_modules
+    # ── Backend API ─────────────────────────────────────────────────
+    backend:
+      build:
+        context: .
+        dockerfile: Dockerfile
+      restart: always
+      ports:
+        - "${PORT:-5000}:5000"
+      env_file:
+        - .env
+      environment:
+        DB_HOST: db
+        DB_PORT: 5432
+      depends_on:
+        db:
+          condition: service_healthy
+        redis:
+          condition: service_healthy
+      volumes:
+        - .:/app
+        - /app/node_modules
 
-  # ── Redis (future analytics caching) ────────────────────────────
-  redis:
-    image: redis:7-alpine
-    restart: always
-    ports:
-      - "6379:6379"
-    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+    # ── Redis (future analytics caching) ────────────────────────────
+    redis:
+      image: redis:7-alpine
+      restart: always
+      ports:
+        - "6379:6379"
+      command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+      healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+        interval: 10s
+        timeout: 5s
+        retries: 3
 
-  # ── pgAdmin (optional — comment out if not needed) ───────────────
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL:    ${PGADMIN_EMAIL:-admin@fleet.local}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
-    ports:
-      - "5050:80"
-    depends_on:
-      - db
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
+    # ── pgAdmin (optional — comment out if not needed) ───────────────
+    pgadmin:
+      image: dpage/pgadmin4:latest
+      restart: always
+      environment:
+        PGADMIN_DEFAULT_EMAIL:    ${PGADMIN_EMAIL:-admin@fleet.com}
+        PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      ports:
+        - "5050:80"
+      depends_on:
+        - db
+      volumes:
+        - pgadmin_data:/var/lib/pgadmin
 
-volumes:
-  postgres_data:
-  pgadmin_data:
+  volumes:
+    postgres_data:
+    pgadmin_data:

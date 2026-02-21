@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS trips               CASCADE;
 DROP TABLE IF EXISTS drivers             CASCADE;
 DROP TABLE IF EXISTS vehicles            CASCADE;
 DROP TABLE IF EXISTS fleet_users         CASCADE;
+DROP SEQUENCE IF EXISTS audit_logs_id_seq;
 
 DROP TYPE IF EXISTS trip_status     CASCADE;
 DROP TYPE IF EXISTS driver_status   CASCADE;
@@ -153,14 +154,17 @@ CREATE TABLE fuel_logs (
     log_date    DATE NOT NULL DEFAULT CURRENT_DATE
 );
 
+CREATE SEQUENCE audit_logs_id_seq;
+
 CREATE TABLE audit_logs (
-    id            SERIAL PRIMARY KEY,
+    id            BIGINT NOT NULL DEFAULT nextval('audit_logs_id_seq'),
     entity_type   TEXT NOT NULL,
     entity_id     INTEGER NOT NULL,
     action        audit_action NOT NULL,
     performed_by  INTEGER REFERENCES fleet_users(id),
     metadata      JSONB,
-    created_at    TIMESTAMPTZ DEFAULT NOW()
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
 CREATE TABLE audit_logs_2026_q1 PARTITION OF audit_logs

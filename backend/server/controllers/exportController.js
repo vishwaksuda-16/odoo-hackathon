@@ -1,5 +1,5 @@
 import pool from '../config/db.js';
-import { generateCSV, streamCSV } from '../utils/exportUtils.js';
+import { generateCSV } from '../utils/exportUtils.js';
 import { calculateVehicleROI, calculateFuelEfficiency } from '../utils/analytics.js';
 
 export const downloadFinancialCSV = async (req, res) => {
