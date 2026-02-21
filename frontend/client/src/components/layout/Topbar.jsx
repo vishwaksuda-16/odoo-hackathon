@@ -86,12 +86,18 @@ function Topbar({ currentPage, user, onToggleSidebar, onToggleTheme, darkMode, o
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: "15px",
                         cursor: "pointer",
-                        color: "var(--color-text-secondary)",
+                        padding: 0,
+                        overflow: "hidden",
                     }}
                 >
-                    {darkMode ? "☀️" : "🌙"}
+                    <img
+                        src={darkMode ? "/light.png" : "/darkk.png"}
+                        alt={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+                        width={20}
+                        height={20}
+                        style={{ display: "block", objectFit: "contain" }}
+                    />
                 </button>
 
                 {/* User chip */}
@@ -134,28 +140,33 @@ function Topbar({ currentPage, user, onToggleSidebar, onToggleTheme, darkMode, o
                 </div>
 
                 {/* Logout */}
-                <button
-                    onClick={onLogout}
-                    aria-label="Sign out"
-                    title="Sign out"
-                    style={{
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "var(--radius-sm)",
-                        background: "var(--color-danger-bg)",
-                        border: "1px solid var(--color-danger-border)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        color: "var(--color-danger)",
-                        fontSize: "14px",
-                    }}
-                >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10.5 11.5L14 8l-3.5-3.5M14 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                </button>
+<button
+  onClick={onLogout}
+  aria-label="Sign out"
+  title="Sign out"
+  style={{
+    width: "36px",
+    height: "36px",
+    borderRadius: "var(--radius-sm)",
+    background: "var(--color-danger-bg)",
+    border: "1px solid var(--color-danger-border)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    fontSize: "14px",
+  }}
+>
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path
+      d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10.5 11.5L14 8l-3.5-3.5M14 8H6"
+      stroke={darkMode ? "white" : "black"}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+</button>
             </div>
         </header>
     );

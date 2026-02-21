@@ -60,7 +60,7 @@ function Login({ onLogin, onGoRegister, onSwitchToRegister, showToast }) {
                 <div style={{ textAlign: "center", marginBottom: "32px" }}>
                     <div
                         style={{
-                            width: "56px",
+                            width: "150px",
                             height: "56px",
                             margin: "0 auto 16px",
                             borderRadius: "16px",
@@ -74,7 +74,7 @@ function Login({ onLogin, onGoRegister, onSwitchToRegister, showToast }) {
                             boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
                         }}
                     >
-                        F
+                        FleetFlow
                     </div>
                     <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#000", letterSpacing: "-0.02em" }}>
                         Welcome back

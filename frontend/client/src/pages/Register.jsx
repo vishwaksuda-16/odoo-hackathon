@@ -92,14 +92,14 @@ function Register({ onRegister, onGoLogin, onSwitchToLogin, showToast }) {
                 <div style={{ textAlign: "center", marginBottom: "28px" }}>
                     <div
                         style={{
-                            width: "48px", height: "48px", margin: "0 auto 14px",
+                            width: "150px", height: "48px", margin: "0 auto 14px",
                             borderRadius: "14px", background: "#000",
                             display: "flex", alignItems: "center", justifyContent: "center",
                             fontSize: "20px", fontWeight: 900, color: "#fff",
                             boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
                         }}
                     >
-                        F
+                        FleetFlow
                     </div>
                     <h1 style={{ fontSize: "1.375rem", fontWeight: 800, color: "#000", letterSpacing: "-0.02em" }}>
                         Create Account

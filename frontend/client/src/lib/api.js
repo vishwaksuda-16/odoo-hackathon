@@ -2,7 +2,7 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 
 /* ── helpers ──────────────────────────────────────────────── */
 
-function getToken() {
+export function getToken() {
   try {
     const s = localStorage.getItem('ff_session');
     return s ? JSON.parse(s).accessToken : null;
@@ -152,3 +152,24 @@ export const exportAPI = {
   payrollCSV: (year, month) => `${API_URL}/export/payroll/csv?year=${year}&month=${month}`,
   vehicleHealthCSV: () => `${API_URL}/export/vehicle-health/csv`,
 };
+
+/** One-click download for export URLs (CSV/PDF) with auth */
+export async function downloadExport(url, filename) {
+  const token = getToken();
+  const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.message || body.error || 'Export failed');
+    err.status = res.status;
+    throw err;
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition');
+  const match = disposition && disposition.match(/filename="?([^";\n]+)"?/);
+  const name = filename || (match ? match[1].trim() : 'export.csv');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}

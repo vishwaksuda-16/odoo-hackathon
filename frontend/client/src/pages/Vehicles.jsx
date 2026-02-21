@@ -154,7 +154,7 @@ function Vehicles({ showToast, role }) {
                             <input id="v-plate" type="text" value={form.license_plate} onChange={(e) => setF("license_plate", e.target.value)} placeholder="e.g. MH12AB1234" className={errors.license_plate ? "error-field" : ""} />
                         </FormField>
                         <FormField label="Model" required htmlFor="v-model" error={errors.name_model}>
-                            <input id="v-model" type="text" value={form.name_model} onChange={(e) => setF("name_model", e.target.value)} placeholder="e.g. Tata Prima 4028.S" className={errors.name_model ? "error-field" : ""} />
+                            <input id="v-model" type="text" value={form.name_model} onChange={(e) => setF("name_model", e.target.value)} placeholder="e.g. Van-05 or Tata Prima 4028.S" className={errors.name_model ? "error-field" : ""} />
                         </FormField>
                         <FormField label="Vehicle Class" required htmlFor="v-class" error={errors.vehicle_class}>
                             <select id="v-class" value={form.vehicle_class} onChange={(e) => setF("vehicle_class", e.target.value)} className={errors.vehicle_class ? "error-field" : ""}>
@@ -164,7 +164,7 @@ function Vehicles({ showToast, role }) {
                         </FormField>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
                             <FormField label="Max Load (kg)" required htmlFor="v-load" error={errors.max_load_kg}>
-                                <input id="v-load" type="number" min="0" value={form.max_load_kg} onChange={(e) => setF("max_load_kg", e.target.value)} placeholder="e.g. 15000" className={errors.max_load_kg ? "error-field" : ""} />
+                                <input id="v-load" type="number" min="0" value={form.max_load_kg} onChange={(e) => setF("max_load_kg", e.target.value)} placeholder="e.g. 500" className={errors.max_load_kg ? "error-field" : ""} />
                             </FormField>
                             <FormField label="Region" htmlFor="v-region">
                                 <input id="v-region" type="text" value={form.region} onChange={(e) => setF("region", e.target.value)} placeholder="e.g. South India" />

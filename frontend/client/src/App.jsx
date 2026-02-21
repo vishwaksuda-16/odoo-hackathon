@@ -12,13 +12,14 @@ import Maintenance from "./pages/Maintenance";
 import Expenses from "./pages/Expenses";
 import Drivers from "./pages/Drivers";
 import Analytics from "./pages/Analytics";
+import Exports from "./pages/Exports";
 
 /* ─── RBAC permission map ─────────────────────────────────── */
 const ROLE_PERMISSIONS = {
-  manager: ["dashboard", "vehicles", "maintenance", "analytics"],
+  manager: ["dashboard", "vehicles", "maintenance", "analytics", "exports"],
   dispatcher: ["dashboard", "trips", "vehicles"],
   safety_officer: ["dashboard", "drivers"],
-  analyst: ["dashboard", "expenses", "analytics"],
+  analyst: ["dashboard", "expenses", "analytics", "exports"],
 };
 
 function getDefaultPage(role) {
@@ -158,6 +159,7 @@ function App() {
       {page === "expenses" && <Expenses showToast={showToast} role={user.role} />}
       {page === "drivers" && <Drivers showToast={showToast} role={user.role} />}
       {page === "analytics" && <Analytics showToast={showToast} role={user.role} />}
+      {page === "exports" && <Exports showToast={showToast} role={user.role} />}
     </Layout>
   );
 }

@@ -1,13 +1,14 @@
 import React from "react";
 
 const NAV_ITEMS = [
-    { id: "dashboard", label: "Dashboard", icon: "📊" },
-    { id: "vehicles", label: "Vehicles", icon: "🚛" },
-    { id: "drivers", label: "Drivers", icon: "👤" },
-    { id: "trips", label: "Trips", icon: "🗺️" },
-    { id: "maintenance", label: "Maintenance", icon: "🔧" },
-    { id: "expenses", label: "Expenses", icon: "💰" },
-    { id: "analytics", label: "Analytics", icon: "📈" },
+    { id: "dashboard", label: "Dashboard", icon: "D" },
+    { id: "vehicles", label: "Vehicles", icon: "V" },
+    { id: "drivers", label: "Drivers", icon: "DR" },
+    { id: "trips", label: "Trips", icon: "T" },
+    { id: "maintenance", label: "Maintenance", icon: "M" },
+    { id: "expenses", label: "Expenses", icon: "E" },
+    { id: "analytics", label: "Analytics", icon: "A" },
+    { id: "exports", label: "Exports", icon: "↓" },
 ];
 
 function Sidebar({ currentPage, onNavigate, collapsed, allowedPages = [] }) {
@@ -42,24 +43,14 @@ function Sidebar({ currentPage, onNavigate, collapsed, allowedPages = [] }) {
                     flexShrink: 0,
                 }}
             >
-                <div
-                    style={{
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "10px",
-                        background: "#fff",
-                        color: "#000",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "18px",
-                        fontWeight: 900,
-                        flexShrink: 0,
-                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
-                    }}
-                >
-                    F
-                </div>
+    <div>
+      <img
+        src='./fleetflow.png'
+        alt="logo"
+        width={50}
+        height={50  }
+      />
+    </div>
                 {!collapsed && (
                     <div style={{ overflow: "hidden", whiteSpace: "nowrap" }}>
                         <div
@@ -195,8 +186,8 @@ function Sidebar({ currentPage, onNavigate, collapsed, allowedPages = [] }) {
                                 width: "8px",
                                 height: "8px",
                                 borderRadius: "50%",
-                                background: "#fff",
-                                boxShadow: "0 0 6px rgba(255, 255, 255, 0.4)",
+                                background: "#10b981",
+                                boxShadow: "0 0 6px rgba(16, 185, 129, 0.5)",
                             }}
                         />
                         <span style={{ fontSize: "0.6875rem", color: "var(--sidebar-text)", opacity: 0.7 }}>

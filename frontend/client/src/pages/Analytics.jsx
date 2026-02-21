@@ -54,13 +54,18 @@ function Analytics({ showToast, role }) {
 
     useEffect(() => { loadData(); }, [loadData]);
 
-    // Calculate KPIs from report data
+    // Calculate KPIs from report data (cost-per-km from fuel + maintenance / odometer)
     const avgFuelEff = report.length > 0
         ? report.reduce((s, v) => s + Number(v.km_per_liter || 0), 0) / report.filter((v) => v.km_per_liter).length
         : 0;
     const avgROI = report.length > 0
         ? report.reduce((s, v) => s + Number(v.roi || 0), 0) / report.filter((v) => v.roi !== null).length
         : 0;
+    const avgCostPerKm = report.length > 0
+        ? report.filter((v) => v.cost_per_km != null).length
+            ? report.reduce((s, v) => s + Number(v.cost_per_km || 0), 0) / report.filter((v) => v.cost_per_km != null).length
+            : null
+        : null;
     const ytdFuel = Number(ytdSummary.ytd_fuel_cost || 0);
 
     let dispMonthly = [...monthly];
@@ -86,8 +91,9 @@ function Analytics({ showToast, role }) {
             />
 
             {/* KPI Cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "24px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
                 <Card title="Avg. Fuel Efficiency" value={avgFuelEff > 0 ? `${avgFuelEff.toFixed(1)} km/L` : "—"} subtitle="across all vehicles" icon="⛽" />
+                <Card title="Avg. Cost per km" value={avgCostPerKm != null ? `₹${Number(avgCostPerKm).toFixed(2)}/km` : "—"} subtitle="fuel + maintenance / odometer" icon="📐" />
                 <Card title="Avg. Fleet ROI" value={avgROI ? `${(avgROI * 100).toFixed(1)}%` : "—"} subtitle="revenue vs. cost" icon="📈" />
                 <Card title="YTD Fuel Cost" value={`₹${(ytdFuel / 100000).toFixed(2)}L`} subtitle={`₹${ytdFuel.toLocaleString()} total`} icon="🛢️" />
             </div>
@@ -120,6 +126,7 @@ function Analytics({ showToast, role }) {
                                 const roi = v.roi ? (Number(v.roi) * 100).toFixed(1) : "—";
                                 const kmPerL = v.km_per_liter ? Number(v.km_per_liter).toFixed(1) : "–";
                                 const totalCost = Number(v.total_fuel_cost || 0) + Number(v.total_maint_cost || 0);
+                                const costPerKm = v.cost_per_km != null ? `₹${Number(v.cost_per_km).toFixed(2)}/km` : "—";
                                 return (
                                     <div key={i} style={{ padding: "12px 20px", borderBottom: i < 4 ? "1px solid var(--color-border)" : "none" }}>
                                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
@@ -128,8 +135,9 @@ function Analytics({ showToast, role }) {
                                                 {roi !== "—" ? `ROI ${roi}%` : "—"}
                                             </span>
                                         </div>
-                                        <div style={{ display: "flex", gap: "16px", fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
+                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px 16px", fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
                                             <span>Fuel Eff: <strong style={{ color: "var(--color-text-primary)" }}>{kmPerL} km/L</strong></span>
+                                            <span>Cost/km: <strong style={{ color: "var(--color-text-primary)" }}>{costPerKm}</strong></span>
                                             <span>Total Cost: <strong style={{ color: "var(--color-text-primary)" }}>₹{totalCost.toLocaleString()}</strong></span>
                                         </div>
                                     </div>

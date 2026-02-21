@@ -5,6 +5,7 @@ import FormField from "../components/ui/FormField";
 import { tripAPI, vehicleAPI, driverAPI } from "../lib/api";
 
 const EMPTY = { vehicle_id: "", driver_id: "", cargo_weight_kg: "" };
+const EMPTY_COMPLETE = { final_odometer: "", liters: "", fuel_cost: "" };
 
 function Modal({ title, onClose, children }) {
     return (
@@ -35,6 +36,10 @@ function Trips({ showToast, role }) {
     const [saving, setSaving] = useState(false);
     const [search, setSearch] = useState("");
     const [sortBy, setSortBy] = useState("");
+    const [completeModal, setCompleteModal] = useState(null);
+    const [completeForm, setCompleteForm] = useState(EMPTY_COMPLETE);
+    const [completeErrors, setCompleteErrors] = useState({});
+    const [completing, setCompleting] = useState(false);
 
     const canCreate = role === "manager" || role === "dispatcher";
 
@@ -118,6 +123,46 @@ function Trips({ showToast, role }) {
         }
     };
 
+    const openCompleteModal = (trip) => {
+        setCompleteModal(trip);
+        setCompleteForm({ final_odometer: String(trip.start_odometer || ""), liters: "", fuel_cost: "" });
+        setCompleteErrors({});
+    };
+
+    const setCF = (k, v) => { setCompleteForm((f) => ({ ...f, [k]: v })); setCompleteErrors((e) => ({ ...e, [k]: "" })); };
+
+    const validateComplete = () => {
+        const errs = {};
+        const start = completeModal ? Number(completeModal.start_odometer) : 0;
+        const final = Number(completeForm.final_odometer);
+        if (!completeForm.final_odometer || isNaN(final)) errs.final_odometer = "Final odometer is required.";
+        else if (final <= start) errs.final_odometer = `Final odometer must be greater than start (${start}).`;
+        return errs;
+    };
+
+    const handleCompleteTrip = async (e) => {
+        e.preventDefault();
+        if (!completeModal) return;
+        const errs = validateComplete();
+        if (Object.keys(errs).length) { setCompleteErrors(errs); showToast("Please enter a valid final odometer.", "error"); return; }
+        setCompleting(true);
+        try {
+            await tripAPI.complete({
+                trip_id: completeModal.id,
+                final_odometer: Number(completeForm.final_odometer),
+                ...(completeForm.liters && !isNaN(Number(completeForm.liters)) && { liters: Number(completeForm.liters) }),
+                ...(completeForm.fuel_cost && !isNaN(Number(completeForm.fuel_cost)) && { fuel_cost: Number(completeForm.fuel_cost) }),
+            });
+            setCompleteModal(null); setCompleteForm(EMPTY_COMPLETE); setCompleteErrors({});
+            showToast("Trip marked done. Vehicle and driver are now available.", "success");
+            loadTrips();
+        } catch (err) {
+            showToast(err.message || "Failed to complete trip.", "error");
+        } finally {
+            setCompleting(false);
+        }
+    };
+
     let displayed = trips.filter((t) =>
         !search || [t.vehicle_name, t.driver_name, t.license_plate, t.status].some((s) =>
             (s || "").toLowerCase().includes(search.toLowerCase())
@@ -152,7 +197,7 @@ function Trips({ showToast, role }) {
                     <div style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>No trips match your search.</div>
                 ) : (
                     <table>
-                        <thead><tr><th>Trip ID</th><th>Vehicle</th><th>Driver</th><th>Cargo (kg)</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Trip ID</th><th>Vehicle</th><th>Driver</th><th>Cargo (kg)</th><th>Start Odometer</th><th>Status</th><th>Actions</th></tr></thead>
                         <tbody>
                             {displayed.map((t) => (
                                 <tr key={t.id}>
@@ -162,7 +207,13 @@ function Trips({ showToast, role }) {
                                     </td>
                                     <td style={{ fontWeight: 500 }}>{t.driver_name}</td>
                                     <td>{Number(t.cargo_weight_kg).toLocaleString()}</td>
+                                    <td style={{ fontSize: "0.8125rem" }}>{t.start_odometer != null ? Number(t.start_odometer).toLocaleString() : "—"}</td>
                                     <td><StatusPill status={t.status} /></td>
+                                    <td>
+                                        {t.status === "dispatched" && (role === "manager" || role === "dispatcher") && (
+                                            <button type="button" onClick={() => openCompleteModal(t)} style={{ padding: "6px 12px", fontSize: "0.75rem", background: "var(--color-primary)", color: "var(--color-surface)", border: "none", borderRadius: "6px", fontWeight: 600, cursor: "pointer" }}>Complete</button>
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -206,6 +257,32 @@ function Trips({ showToast, role }) {
                                 style={{ padding: "9px 18px", border: "1px solid var(--color-border)", borderRadius: "6px", background: "var(--color-surface)", color: "var(--color-text-secondary)", fontWeight: 500, cursor: "pointer" }}>Cancel</button>
                             <button type="submit" disabled={saving} style={{ padding: "9px 20px", background: saving ? "#999" : "var(--color-primary)", color: "var(--color-surface)", border: "none", borderRadius: "6px", fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
                                 {saving ? "Creating…" : "Dispatch Trip"}
+                            </button>
+                        </div>
+                    </form>
+                </Modal>
+            )}
+
+            {completeModal && (
+                <Modal title="Complete Trip" onClose={() => { setCompleteModal(null); setCompleteForm(EMPTY_COMPLETE); setCompleteErrors({}); }}>
+                    <p style={{ fontSize: "0.875rem", color: "var(--color-text-secondary)", marginBottom: "12px" }}>
+                        Trip #{completeModal.id} — {completeModal.vehicle_name} / {completeModal.driver_name}. Start odometer: {Number(completeModal.start_odometer).toLocaleString()} km.
+                    </p>
+                    <form onSubmit={handleCompleteTrip} noValidate>
+                        <FormField label="Final Odometer (km)" required htmlFor="final-odo" error={completeErrors.final_odometer}>
+                            <input id="final-odo" type="number" min={Number(completeModal.start_odometer) + 1} value={completeForm.final_odometer} onChange={(e) => setCF("final_odometer", e.target.value)} placeholder="e.g. 50500" className={completeErrors.final_odometer ? "error-field" : ""} />
+                        </FormField>
+                        <FormField label="Fuel Liters (optional)" htmlFor="complete-liters">
+                            <input id="complete-liters" type="number" min="0" step="0.01" value={completeForm.liters} onChange={(e) => setCF("liters", e.target.value)} placeholder="For fuel log" />
+                        </FormField>
+                        <FormField label="Fuel Cost (₹, optional)" htmlFor="complete-cost">
+                            <input id="complete-cost" type="number" min="0" step="0.01" value={completeForm.fuel_cost} onChange={(e) => setCF("fuel_cost", e.target.value)} placeholder="For cost-per-km" />
+                        </FormField>
+                        <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "12px" }}>
+                            <button type="button" onClick={() => { setCompleteModal(null); setCompleteForm(EMPTY_COMPLETE); setCompleteErrors({}); }}
+                                style={{ padding: "9px 18px", border: "1px solid var(--color-border)", borderRadius: "6px", background: "var(--color-surface)", color: "var(--color-text-secondary)", fontWeight: 500, cursor: "pointer" }}>Cancel</button>
+                            <button type="submit" disabled={completing} style={{ padding: "9px 20px", background: completing ? "#999" : "var(--color-primary)", color: "var(--color-surface)", border: "none", borderRadius: "6px", fontWeight: 600, cursor: completing ? "not-allowed" : "pointer" }}>
+                                {completing ? "Completing…" : "Mark Done"}
                             </button>
                         </div>
                     </form>

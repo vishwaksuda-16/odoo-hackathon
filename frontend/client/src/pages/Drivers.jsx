@@ -1,7 +1,28 @@
 import React, { useState, useEffect, useCallback } from "react";
 import StatusPill from "../components/ui/StatusPill";
 import PageHeader from "../components/ui/PageHeader";
+import FormField from "../components/ui/FormField";
 import { driverAPI } from "../lib/api";
+
+const LICENSE_CATEGORIES = ["van", "truck", "tanker", "flatbed", "refrigerated"];
+const EMPTY_DRIVER = { name: "", license_expiry: "", license_category: "van" };
+
+function Modal({ title, onClose, children }) {
+    return (
+        <div role="dialog" aria-modal="true" aria-labelledby="driver-modal-title"
+            style={{ position: "fixed", inset: 0, zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(15,23,42,0.45)" }}
+            onClick={(e) => e.target === e.currentTarget && onClose()}
+        >
+            <div style={{ background: "var(--color-surface)", borderRadius: "12px", width: "100%", maxWidth: "440px", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 24px", borderBottom: "1px solid var(--color-border)" }}>
+                    <h3 id="driver-modal-title" style={{ fontSize: "1rem", fontWeight: 700, color: "var(--color-text-primary)" }}>{title}</h3>
+                    <button onClick={onClose} style={{ background: "none", border: "none", fontSize: "22px", color: "var(--color-text-muted)", cursor: "pointer" }}>×</button>
+                </div>
+                <div style={{ padding: "20px 24px" }}>{children}</div>
+            </div>
+        </div>
+    );
+}
 
 function ScoreBar({ value, max = 100, color }) {
     return (
@@ -20,6 +41,12 @@ function Drivers({ showToast, role }) {
     const [search, setSearch] = useState("");
     const [sortBy, setSortBy] = useState("");
     const [groupBy, setGroupBy] = useState("");
+    const [showModal, setShowModal] = useState(false);
+    const [form, setForm] = useState(EMPTY_DRIVER);
+    const [errors, setErrors] = useState({});
+    const [saving, setSaving] = useState(false);
+
+    const canCreate = role === "manager" || role === "safety_officer";
 
     const loadDrivers = useCallback(async () => {
         setLoading(true);
@@ -34,6 +61,37 @@ function Drivers({ showToast, role }) {
     }, [showToast]);
 
     useEffect(() => { loadDrivers(); }, [loadDrivers]);
+
+    const setF = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setErrors((e) => ({ ...e, [k]: "" })); };
+
+    const validateDriver = () => {
+        const errs = {};
+        if (!form.name.trim()) errs.name = "Driver name is required.";
+        if (!form.license_expiry) errs.license_expiry = "License expiry date is required.";
+        if (form.license_expiry && new Date(form.license_expiry) < new Date()) errs.license_expiry = "License expiry must be a future date.";
+        return errs;
+    };
+
+    const handleSaveDriver = async (e) => {
+        e.preventDefault();
+        const errs = validateDriver();
+        if (Object.keys(errs).length) { setErrors(errs); showToast("Please fix the highlighted fields.", "error"); return; }
+        setSaving(true);
+        try {
+            await driverAPI.create({
+                name: form.name.trim(),
+                license_expiry: form.license_expiry,
+                license_category: form.license_category || "van",
+            });
+            setShowModal(false); setForm(EMPTY_DRIVER); setErrors({});
+            showToast("Driver added. License category is verified when assigning to vehicles.", "success");
+            loadDrivers();
+        } catch (err) {
+            showToast(err.message || "Failed to add driver.", "error");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const today = new Date();
     const isExpired = (expiry) => new Date(expiry) < today;
@@ -77,6 +135,8 @@ function Drivers({ showToast, role }) {
 
             <PageHeader
                 title="Driver Performance & Safety"
+                actionLabel={canCreate ? "New Driver" : undefined}
+                onAction={canCreate ? () => { setShowModal(true); setForm(EMPTY_DRIVER); setErrors({}); } : undefined}
                 search={search} onSearch={setSearch} searchPlaceholder="Search by name, category, status…"
                 sortOptions={[
                     { label: "Name (A–Z)", value: "name" },
@@ -141,6 +201,35 @@ function Drivers({ showToast, role }) {
                     </table>
                 )}
             </div>
+
+            {showModal && (
+                <Modal title="Add Driver" onClose={() => { setShowModal(false); setForm(EMPTY_DRIVER); setErrors({}); }}>
+                    <form onSubmit={handleSaveDriver} noValidate>
+                        <FormField label="Driver Name" required htmlFor="d-name" error={errors.name}>
+                            <input id="d-name" type="text" value={form.name} onChange={(e) => setF("name", e.target.value)} placeholder="e.g. Alex" className={errors.name ? "error-field" : ""} />
+                        </FormField>
+                        <FormField label="License Category" required htmlFor="d-category" error={errors.license_category}>
+                            <select id="d-category" value={form.license_category} onChange={(e) => setF("license_category", e.target.value)}>
+                                {LICENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                            </select>
+                        </FormField>
+                        <FormField label="License Expiry" required htmlFor="d-expiry" error={errors.license_expiry}>
+                            <input id="d-expiry" type="date" value={form.license_expiry} onChange={(e) => setF("license_expiry", e.target.value)} className={errors.license_expiry ? "error-field" : ""} />
+                        </FormField>
+                        <div style={{ background: "var(--color-info-bg)", border: "1px solid var(--color-info-border)", borderRadius: "6px", padding: "8px 12px", marginBottom: "12px", fontSize: "0.75rem", color: "var(--color-text-primary)" }}>
+                            License is validated when assigning this driver to a vehicle (category must match vehicle class).
+                        </div>
+                        <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginTop: "8px" }}>
+                            <button type="button" onClick={() => { setShowModal(false); setForm(EMPTY_DRIVER); setErrors({}); }}
+                                style={{ padding: "9px 18px", border: "1px solid var(--color-border)", borderRadius: "6px", background: "var(--color-surface)", color: "var(--color-text-secondary)", fontWeight: 500, cursor: "pointer" }}>Cancel</button>
+                            <button type="submit" disabled={saving}
+                                style={{ padding: "9px 20px", background: saving ? "#999" : "var(--color-primary)", color: "var(--color-surface)", border: "none", borderRadius: "6px", fontWeight: 600, cursor: saving ? "not-allowed" : "pointer" }}>
+                                {saving ? "Saving…" : "Add Driver"}
+                            </button>
+                        </div>
+                    </form>
+                </Modal>
+            )}
         </div>
     );
 }

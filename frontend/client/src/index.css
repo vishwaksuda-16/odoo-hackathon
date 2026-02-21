@@ -110,6 +110,20 @@
   --sidebar-border: rgba(255, 255, 255, 0.06);
 }
 
+:root {
+  /* Light mode */
+  --color-text-primary: #000000;
+  --color-text-secondary: #000000;
+  --color-text-muted: #000000;
+}
+
+[data-theme="dark"] {
+  /* Dark mode */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #ffffff;
+  --color-text-muted: #ffffff;
+}
+
 /* ─── GLOBAL RESET + BASE ──────────────────────────────────── */
 
 *,
