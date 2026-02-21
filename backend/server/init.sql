@@ -44,13 +44,15 @@ CREATE TYPE alert_type AS ENUM (
 CREATE TYPE alert_severity AS ENUM ('info', 'warning', 'critical');
 
 CREATE TABLE fleet_users (
-    id             SERIAL PRIMARY KEY,
-    username       TEXT UNIQUE NOT NULL,
-    email          TEXT UNIQUE NOT NULL,
-    password_hash  TEXT NOT NULL,
-    role           fleet_user_role NOT NULL,
-    refresh_token  TEXT,
-    created_at     TIMESTAMPTZ DEFAULT NOW()
+    id                   SERIAL PRIMARY KEY,
+    username             TEXT UNIQUE NOT NULL,
+    email                TEXT UNIQUE NOT NULL,
+    password_hash        TEXT NOT NULL,
+    role                 fleet_user_role NOT NULL,
+    refresh_token        TEXT,
+    reset_token          TEXT,
+    reset_token_expiry   TIMESTAMPTZ,
+    created_at           TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE vehicles (
@@ -58,6 +60,7 @@ CREATE TABLE vehicles (
     name_model      TEXT NOT NULL,
     license_plate   TEXT UNIQUE NOT NULL,
     vehicle_class   TEXT NOT NULL DEFAULT 'van',
+    region          TEXT,
     max_load_kg     NUMERIC(10,2) NOT NULL CHECK (max_load_kg > 0),
     odometer        INTEGER NOT NULL DEFAULT 0 CHECK (odometer >= 0),
     status          vehicle_status NOT NULL DEFAULT 'available',
@@ -125,6 +128,20 @@ CREATE TABLE maintenance_alerts (
     CONSTRAINT chk_alert_target CHECK (
         vehicle_id IS NOT NULL OR driver_id IS NOT NULL
     )
+);
+
+CREATE TABLE cargo_requests (
+    id              SERIAL PRIMARY KEY,
+    description     TEXT NOT NULL,
+    weight_kg       NUMERIC(10,2) NOT NULL CHECK (weight_kg > 0),
+    origin          TEXT,
+    destination     TEXT,
+    region          TEXT,
+    requested_by    INTEGER REFERENCES fleet_users(id),
+    status          TEXT NOT NULL DEFAULT 'pending'
+                        CHECK (status IN ('pending', 'assigned', 'cancelled')),
+    trip_id         INTEGER REFERENCES trips(id),
+    created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE fuel_logs (
