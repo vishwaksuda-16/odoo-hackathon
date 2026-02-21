@@ -34,53 +34,49 @@ function Login({ onLogin, onGoRegister, onSwitchToRegister, showToast }) {
         <div
             style={{
                 width: "100vw",
-                height: "100vh",
+                minHeight: "100vh",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: "#000000",
                 position: "relative",
                 overflow: "hidden",
+                backgroundImage: "url(/bg.jpeg)",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
             }}
         >
+            {/* Dark overlay so form stays readable over the graphic */}
+            <div
+                style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.7) 100%)",
+                    pointerEvents: "none",
+                }}
+            />
+
             <div
                 style={{
                     width: "100%",
-                    maxWidth: "420px",
+                    maxWidth: "400px",
                     borderRadius: "20px",
-                    background: "#ffffff",
-                    border: "1px solid #e0e0e0",
-                    boxShadow: "0 24px 80px rgba(0, 0, 0, 0.25)",
-                    padding: "40px 36px",
+                    padding: "44px 40px",
                     position: "relative",
                     zIndex: 1,
+                    background: "rgba(15, 23, 42, 0.85)",
+                    border: "1px solid rgba(255, 255, 255, 0.12)",
+                    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+                    backdropFilter: "blur(16px)",
                 }}
             >
-                {/* Logo */}
-                <div style={{ textAlign: "center", marginBottom: "32px" }}>
-                    <div
-                        style={{
-                            width: "150px",
-                            height: "56px",
-                            margin: "0 auto 16px",
-                            borderRadius: "16px",
-                            background: "#000000",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "24px",
-                            fontWeight: 900,
-                            color: "#fff",
-                            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
-                        }}
-                    >
+                {/* Logo / title — matches FleetFlow branding on the bg */}
+                <div style={{ textAlign: "center", marginBottom: "28px" }}>
+                    <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#fff", letterSpacing: "-0.03em", margin: 0 }}>
                         FleetFlow
-                    </div>
-                    <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#000", letterSpacing: "-0.02em" }}>
-                        Welcome back
                     </h1>
-                    <p style={{ fontSize: "0.875rem", color: "#666", marginTop: "6px" }}>
-                        Sign in to your FleetFlow account
+                    <p style={{ fontSize: "0.875rem", color: "rgba(255, 255, 255, 0.6)", marginTop: "8px", marginBottom: 0 }}>
+                        Sign in to your account
                     </p>
                 </div>
 
@@ -88,13 +84,13 @@ function Login({ onLogin, onGoRegister, onSwitchToRegister, showToast }) {
                     <div
                         role="alert"
                         style={{
-                            padding: "10px 14px",
-                            borderRadius: "10px",
-                            background: "rgba(0, 0, 0, 0.06)",
-                            border: "1px solid rgba(0, 0, 0, 0.15)",
-                            color: "#000",
+                            padding: "12px 16px",
+                            borderRadius: "12px",
+                            background: "rgba(239, 68, 68, 0.2)",
+                            border: "1px solid rgba(239, 68, 68, 0.4)",
+                            color: "#fca5a5",
                             fontSize: "0.8125rem",
-                            marginBottom: "18px",
+                            marginBottom: "20px",
                             textAlign: "center",
                         }}
                     >
@@ -103,121 +99,94 @@ function Login({ onLogin, onGoRegister, onSwitchToRegister, showToast }) {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    <div style={{ marginBottom: "16px" }}>
-                        <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "#333", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                            Username or Email
+                    <div style={{ marginBottom: "18px" }}>
+                        <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "rgba(255, 255, 255, 0.85)", marginBottom: "8px" }}>
+                            Username or email
                         </label>
                         <input
                             type="text"
                             value={form.login}
                             onChange={(e) => setForm({ ...form, login: e.target.value })}
-                            placeholder="admin_mgr"
+                            placeholder="Enter username or email"
                             autoComplete="username"
                             style={{
                                 width: "100%",
-                                padding: "12px 16px",
-                                borderRadius: "10px",
-                                border: "1px solid #e0e0e0",
-                                background: "#fafafa",
-                                color: "#000",
+                                padding: "14px 18px",
+                                borderRadius: "12px",
+                                border: "1px solid rgba(255, 255, 255, 0.15)",
+                                background: "rgba(0, 0, 0, 0.25)",
+                                color: "#fff",
                                 fontSize: "0.9375rem",
                                 outline: "none",
+                                boxSizing: "border-box",
                             }}
                         />
                     </div>
-
                     <div style={{ marginBottom: "24px" }}>
-                        <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "#333", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "rgba(255, 255, 255, 0.85)", marginBottom: "8px" }}>
                             Password
                         </label>
                         <input
                             type="password"
                             value={form.password}
                             onChange={(e) => setForm({ ...form, password: e.target.value })}
-                            placeholder="••••••••"
+                            placeholder="Enter password"
                             autoComplete="current-password"
                             style={{
                                 width: "100%",
-                                padding: "12px 16px",
-                                borderRadius: "10px",
-                                border: "1px solid #e0e0e0",
-                                background: "#fafafa",
-                                color: "#000",
+                                padding: "14px 18px",
+                                borderRadius: "12px",
+                                border: "1px solid rgba(255, 255, 255, 0.15)",
+                                background: "rgba(0, 0, 0, 0.25)",
+                                color: "#fff",
                                 fontSize: "0.9375rem",
                                 outline: "none",
+                                boxSizing: "border-box",
                             }}
                         />
                     </div>
-
                     <button
                         type="submit"
                         disabled={loading}
                         style={{
                             width: "100%",
-                            padding: "14px",
-                            borderRadius: "10px",
-                            background: loading ? "#999" : "#000",
-                            color: "#fff",
+                            padding: "14px 20px",
+                            borderRadius: "12px",
+                            background: loading ? "rgba(255,255,255,0.2)" : "#fff",
+                            color: loading ? "rgba(255,255,255,0.7)" : "#0f172a",
                             fontSize: "0.9375rem",
                             fontWeight: 700,
                             border: "none",
                             cursor: loading ? "not-allowed" : "pointer",
-                            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
+                            boxShadow: loading ? "none" : "0 4px 20px rgba(0, 0, 0, 0.3)",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            gap: "8px",
-                            transition: "all 200ms ease",
+                            gap: "10px",
                         }}
                     >
-                        {loading && <span className="ff-spinner" style={{ width: "16px", height: "16px", borderWidth: "2px", borderTopColor: "#fff", borderColor: "rgba(255,255,255,0.3)" }} />}
-                        {loading ? "Signing in…" : "Sign In"}
+                        {loading && <span className="ff-spinner" style={{ width: "18px", height: "18px", borderWidth: "2px", borderTopColor: "#0f172a", borderColor: "rgba(15,23,42,0.3)" }} />}
+                        {loading ? "Signing in…" : "Sign in"}
                     </button>
                 </form>
 
-                <div style={{ textAlign: "center", marginTop: "24px" }}>
-                    <span style={{ fontSize: "0.8125rem", color: "#666" }}>
-                        Don't have an account?{" "}
-                        <button
-                            onClick={onSwitchToRegister || onGoRegister}
-                            style={{
-                                background: "none",
-                                border: "none",
-                                color: "#000",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                textDecoration: "underline",
-                                fontSize: "0.8125rem",
-                            }}
-                        >
-                            Create one
-                        </button>
-                    </span>
-                </div>
-
-                {/* Demo hint */}
-                <div
-                    style={{
-                        marginTop: "24px",
-                        padding: "12px 16px",
-                        borderRadius: "10px",
-                        background: "rgba(0, 0, 0, 0.04)",
-                        border: "1px solid #e0e0e0",
-                    }}
-                >
-                    <div style={{ fontSize: "0.625rem", fontWeight: 700, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>
-                        Demo Credentials
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 16px", fontSize: "0.6875rem", color: "#555" }}>
-                        <span><strong style={{ color: "#000" }}>Manager:</strong> admin_mgr</span>
-                        <span><strong style={{ color: "#000" }}>Dispatcher:</strong> dispatch_ops</span>
-                        <span><strong style={{ color: "#000" }}>Safety:</strong> safety_lead</span>
-                        <span><strong style={{ color: "#000" }}>Analyst:</strong> data_analyst</span>
-                    </div>
-                    <div style={{ fontSize: "0.625rem", color: "#666", marginTop: "6px" }}>
-                        Password for all: <strong style={{ color: "#000" }}>fleet123</strong>
-                    </div>
-                </div>
+                <p style={{ textAlign: "center", marginTop: "24px", marginBottom: 0, fontSize: "0.8125rem", color: "rgba(255, 255, 255, 0.6)" }}>
+                    Don't have an account?{" "}
+                    <button
+                        onClick={onSwitchToRegister || onGoRegister}
+                        style={{
+                            background: "none",
+                            border: "none",
+                            color: "#fff",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                            fontSize: "inherit",
+                        }}
+                    >
+                        Create one
+                    </button>
+                </p>
             </div>
         </div>
     );
