@@ -6,6 +6,7 @@ import Trips from "./pages/Trips";
 import Maintenance from "./pages/Maintenance";
 import Expenses from "./pages/Expenses";
 import Drivers from "./pages/Drivers";
+import Analytics from "./pages/Analytics";
 
 function App() {
   const [page, setPage] = useState("dashboard");
@@ -18,6 +19,7 @@ function App() {
       {page === "maintenance" && <Maintenance />}
       {page === "expenses" && <Expenses />}
       {page === "drivers" && <Drivers />}
+      {page === "analytics" && <Analytics />}
     </Layout>
   );
 }

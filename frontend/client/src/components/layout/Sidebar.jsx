@@ -32,7 +32,9 @@ function Sidebar({ setPage }) {
                 <li onClick={() => setPage("drivers")} style={{ cursor: "pointer" }}>
                     Drivers
                 </li>
-                <li>Analytics</li>
+                <li onClick={() => setPage("analytics")} style={{ cursor: "pointer" }}>
+                    Analytics
+                </li>
             </ul>
         </div>
     );
