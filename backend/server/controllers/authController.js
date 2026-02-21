@@ -2,13 +2,14 @@ import pool from '../config/db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-
+// REGISTER
 export const register = async (req, res) => {
   const { email, password, role } = req.body;
 
   try {
+    // Check if user already exists
     const existingUser = await pool.query(
-      `SELECT * FROM users WHERE email = $1`,
+      `SELECT * FROM fleet_users WHERE email = $1`,
       [email]
     );
 
@@ -16,11 +17,13 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // Hash password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+    // Insert new user
     const result = await pool.query(
-      `INSERT INTO users (email, password_hash, role)
+      `INSERT INTO fleet_users (email, password_hash, role)
        VALUES ($1, $2, $3)
        RETURNING id, email, role`,
       [email, hashedPassword, role]
@@ -37,13 +40,13 @@ export const register = async (req, res) => {
 };
 
 
-
+// LOGIN
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
     const result = await pool.query(
-      `SELECT * FROM users WHERE email = $1`,
+      `SELECT * FROM fleet_users WHERE email = $1`,
       [email]
     );
 
@@ -67,7 +70,12 @@ export const login = async (req, res) => {
 
     res.json({
       message: "Login successful",
-      token
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      }
     });
 
   } catch (error) {

@@ -32,7 +32,7 @@ export const StateService = {
     },
 
     /**
-     * Logic: Trip Completion - Return to "Available"
+     * Logic: Trip Completion - Return to "available"
      * Updates odometer and releases driver 
      */
     async completeTrip(vehicleId, driverId, newOdometer) {

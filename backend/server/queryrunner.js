@@ -1,3 +1,9 @@
+import pool from './config/db.js';
+
+export const queryrunner = async () => {
+  const query = `
+  -- Drop ONLY fleet tables (safe order)
+
   DROP TABLE IF EXISTS fuel_logs CASCADE;
   DROP TABLE IF EXISTS maintenance_logs CASCADE;
   DROP TABLE IF EXISTS trips CASCADE;
@@ -17,7 +23,7 @@
   CREATE TYPE fleet_user_role AS ENUM ('manager', 'dispatcher', 'safety_officer', 'analyst');
   CREATE TYPE vehicle_status AS ENUM ('available', 'on_trip', 'in_shop', 'retired');
   CREATE TYPE driver_status AS ENUM ('on_duty', 'off_duty', 'on_trip', 'suspended');
-  CREATE TYPE trip_status AS ENUM ('draft', 'available', 'completed', 'cancelled');
+  CREATE TYPE trip_status AS ENUM ('draft', 'dispatched', 'completed', 'cancelled');
 
   -- Fleet Users Table (renamed to avoid Odoo conflict)
 
@@ -50,7 +56,7 @@
       vehicle_id INTEGER REFERENCES vehicles(id),
       driver_id INTEGER REFERENCES drivers(id),
       cargo_weight_kg NUMERIC NOT NULL,
-      status trip_status DEFAULT 'available'
+      status trip_status DEFAULT 'dispatched'
   );
 
   CREATE TABLE maintenance_logs (
@@ -70,3 +76,12 @@
       fuel_cost NUMERIC(10, 2) NOT NULL,
       log_date DATE DEFAULT CURRENT_DATE
   );
+  `;
+
+  try {
+    await pool.query(query);
+    console.log('Fleet schema initialized successfully');
+  } catch (error) {
+    console.error('Error executing fleet schema:', error);
+  }
+};

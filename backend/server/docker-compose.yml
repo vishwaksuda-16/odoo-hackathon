@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:18 # Pinning to 18 to match your logs
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yasir
+      POSTGRES_DB: fleet_management
+      PGDATA: /var/lib/postgresql/18/docker # New path for v18
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql # Mount base dir
+
+volumes:
+  postgres_data:
