@@ -1,39 +1,30 @@
 import React, { useState } from "react";
-import FormField from "../components/ui/FormField";
 import { authAPI } from "../lib/api";
 
-function Login({ onLogin, onGoRegister, showToast }) {
+function Login({ onLogin, onGoRegister, onSwitchToRegister, showToast }) {
     const [form, setForm] = useState({ login: "", password: "" });
-    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
-
-    const set = (field, value) => {
-        setForm((f) => ({ ...f, [field]: value }));
-        setErrors((e) => ({ ...e, [field]: "", auth: "" }));
-    };
-
-    const validate = () => {
-        const errs = {};
-        if (!form.login.trim()) errs.login = "Username or email is required.";
-        if (!form.password.trim()) errs.password = "Password is required.";
-        return errs;
-    };
+    const [error, setError] = useState("");
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const errs = validate();
-        if (Object.keys(errs).length) { setErrors(errs); return; }
-
+        setError("");
+        if (!form.login || !form.password) {
+            setError("Username/email and password are required.");
+            return;
+        }
         setLoading(true);
         try {
             const data = await authAPI.login(form.login, form.password);
             if (data.success) {
-                onLogin(data);
-            } else {
-                setErrors({ auth: data.message || "Login failed. Please try again." });
+                onLogin({
+                    user: data.user,
+                    accessToken: data.accessToken,
+                    refreshToken: data.refreshToken,
+                });
             }
         } catch (err) {
-            setErrors({ auth: err.message || "Invalid username or password." });
+            setError(err.message || "Login failed.");
         } finally {
             setLoading(false);
         }
@@ -42,116 +33,202 @@ function Login({ onLogin, onGoRegister, showToast }) {
     return (
         <div
             style={{
-                minHeight: "100vh", width: "100vw",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                background: "linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%)",
+                width: "100vw",
+                height: "100vh",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)",
+                position: "relative",
+                overflow: "hidden",
             }}
         >
+            {/* Background pattern */}
+            <div style={{
+                position: "absolute", inset: 0,
+                backgroundImage: `radial-gradient(circle at 25% 25%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                          radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)`,
+            }} />
+            <div style={{
+                position: "absolute", top: "-20%", right: "-10%", width: "500px", height: "500px",
+                borderRadius: "50%", background: "rgba(99, 102, 241, 0.06)", filter: "blur(80px)",
+            }} />
+
             <div
                 style={{
-                    width: "100%", maxWidth: "420px",
-                    background: "#fff", borderRadius: "14px",
-                    boxShadow: "0 10px 40px rgba(0,0,0,0.12)",
-                    overflow: "hidden",
+                    width: "100%",
+                    maxWidth: "420px",
+                    borderRadius: "20px",
+                    background: "rgba(255, 255, 255, 0.04)",
+                    backdropFilter: "blur(24px)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    boxShadow: "0 24px 80px rgba(0, 0, 0, 0.4)",
+                    padding: "40px 36px",
+                    position: "relative",
+                    zIndex: 1,
                 }}
             >
-                {/* Header */}
-                <div
-                    style={{
-                        background: "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)",
-                        padding: "32px 36px 28px",
-                    }}
-                >
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-                        <div
-                            style={{
-                                width: "38px", height: "38px", borderRadius: "10px",
-                                background: "rgba(255,255,255,0.2)",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                fontWeight: 800, fontSize: "18px", color: "#fff",
-                            }}
-                        >
-                            F
-                        </div>
-                        <span style={{ fontWeight: 800, fontSize: "1.25rem", color: "#fff" }}>FleetFlow</span>
+                {/* Logo */}
+                <div style={{ textAlign: "center", marginBottom: "32px" }}>
+                    <div
+                        style={{
+                            width: "56px",
+                            height: "56px",
+                            margin: "0 auto 16px",
+                            borderRadius: "16px",
+                            background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "24px",
+                            fontWeight: 900,
+                            color: "#fff",
+                            boxShadow: "0 4px 20px rgba(99, 102, 241, 0.4)",
+                        }}
+                    >
+                        F
                     </div>
-                    <h2 style={{ color: "#fff", fontSize: "1.375rem", fontWeight: 700, margin: 0 }}>
-                        Sign in to your account
-                    </h2>
-                    <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.875rem", marginTop: "4px" }}>
-                        Fleet & Logistics Management System
+                    <h1 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>
+                        Welcome back
+                    </h1>
+                    <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.5)", marginTop: "6px" }}>
+                        Sign in to your FleetFlow account
                     </p>
                 </div>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} noValidate style={{ padding: "28px 36px 32px" }}>
-                    {/* Auth-level error */}
-                    {errors.auth && (
-                        <div
-                            role="alert"
-                            style={{
-                                background: "#fef2f2", border: "1px solid #fecaca",
-                                borderRadius: "8px", padding: "10px 14px",
-                                marginBottom: "18px", fontSize: "0.875rem", color: "#b91c1c",
-                                display: "flex", alignItems: "center", gap: "8px",
-                            }}
-                        >
-                            <span style={{ fontWeight: 700 }}>✕</span> {errors.auth}
-                        </div>
-                    )}
+                {error && (
+                    <div
+                        role="alert"
+                        style={{
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            background: "rgba(239, 68, 68, 0.12)",
+                            border: "1px solid rgba(239, 68, 68, 0.25)",
+                            color: "#fca5a5",
+                            fontSize: "0.8125rem",
+                            marginBottom: "18px",
+                            textAlign: "center",
+                        }}
+                    >
+                        {error}
+                    </div>
+                )}
 
-                    <FormField label="Username or Email" required htmlFor="login-user" error={errors.login}>
+                <form onSubmit={handleSubmit}>
+                    <div style={{ marginBottom: "16px" }}>
+                        <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            Username or Email
+                        </label>
                         <input
-                            id="login-user"
                             type="text"
                             value={form.login}
-                            onChange={(e) => set("login", e.target.value)}
-                            placeholder="Enter username or email"
+                            onChange={(e) => setForm({ ...form, login: e.target.value })}
+                            placeholder="admin_mgr"
                             autoComplete="username"
-                            aria-required="true"
-                            className={errors.login ? "error-field" : ""}
+                            style={{
+                                width: "100%",
+                                padding: "12px 16px",
+                                borderRadius: "10px",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                background: "rgba(255,255,255,0.06)",
+                                color: "#fff",
+                                fontSize: "0.9375rem",
+                                outline: "none",
+                            }}
                         />
-                    </FormField>
+                    </div>
 
-                    <FormField label="Password" required htmlFor="login-password" error={errors.password}>
+                    <div style={{ marginBottom: "24px" }}>
+                        <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            Password
+                        </label>
                         <input
-                            id="login-password"
                             type="password"
                             value={form.password}
-                            onChange={(e) => set("password", e.target.value)}
-                            placeholder="Enter your password"
+                            onChange={(e) => setForm({ ...form, password: e.target.value })}
+                            placeholder="••••••••"
                             autoComplete="current-password"
-                            aria-required="true"
-                            className={errors.password ? "error-field" : ""}
+                            style={{
+                                width: "100%",
+                                padding: "12px 16px",
+                                borderRadius: "10px",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                background: "rgba(255,255,255,0.06)",
+                                color: "#fff",
+                                fontSize: "0.9375rem",
+                                outline: "none",
+                            }}
                         />
-                    </FormField>
+                    </div>
 
                     <button
                         type="submit"
                         disabled={loading}
                         style={{
-                            width: "100%", padding: "11px",
-                            background: loading ? "#93c5fd" : "#1d4ed8",
-                            color: "#fff", border: "none", borderRadius: "8px",
-                            fontSize: "0.9375rem", fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
-                            transition: "background 150ms",
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                            width: "100%",
+                            padding: "14px",
+                            borderRadius: "10px",
+                            background: loading ? "rgba(99, 102, 241, 0.5)" : "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                            color: "#fff",
+                            fontSize: "0.9375rem",
+                            fontWeight: 700,
+                            border: "none",
+                            cursor: loading ? "not-allowed" : "pointer",
+                            boxShadow: "0 4px 16px rgba(99, 102, 241, 0.3)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "8px",
+                            transition: "all 200ms ease",
                         }}
                     >
-                        {loading && <span className="ff-spinner" style={{ width: "16px", height: "16px", borderWidth: "2px" }}></span>}
+                        {loading && <span className="ff-spinner" style={{ width: "16px", height: "16px", borderWidth: "2px", borderTopColor: "#fff", borderColor: "rgba(255,255,255,0.3)" }} />}
                         {loading ? "Signing in…" : "Sign In"}
                     </button>
-
-                    <p style={{ textAlign: "center", marginTop: "18px", fontSize: "0.875rem", color: "#64748b" }}>
-                        New to FleetFlow?{" "}
-                        <button
-                            type="button" onClick={onGoRegister}
-                            style={{ background: "none", border: "none", color: "#1d4ed8", fontWeight: 600, cursor: "pointer", padding: 0, fontSize: "inherit" }}
-                        >
-                            Create an account
-                        </button>
-                    </p>
                 </form>
+
+                <div style={{ textAlign: "center", marginTop: "24px" }}>
+                    <span style={{ fontSize: "0.8125rem", color: "rgba(255,255,255,0.4)" }}>
+                        Don't have an account?{" "}
+                        <button
+                            onClick={onSwitchToRegister || onGoRegister}
+                            style={{
+                                background: "none",
+                                border: "none",
+                                color: "#818cf8",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                fontSize: "0.8125rem",
+                            }}
+                        >
+                            Create one
+                        </button>
+                    </span>
+                </div>
+
+                {/* Demo hint */}
+                <div
+                    style={{
+                        marginTop: "24px",
+                        padding: "12px 16px",
+                        borderRadius: "10px",
+                        background: "rgba(99, 102, 241, 0.06)",
+                        border: "1px solid rgba(99, 102, 241, 0.15)",
+                    }}
+                >
+                    <div style={{ fontSize: "0.625rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>
+                        Demo Credentials
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 16px", fontSize: "0.6875rem", color: "rgba(255,255,255,0.5)" }}>
+                        <span><strong style={{ color: "rgba(255,255,255,0.7)" }}>Manager:</strong> admin_mgr</span>
+                        <span><strong style={{ color: "rgba(255,255,255,0.7)" }}>Dispatcher:</strong> dispatch_ops</span>
+                        <span><strong style={{ color: "rgba(255,255,255,0.7)" }}>Safety:</strong> safety_lead</span>
+                        <span><strong style={{ color: "rgba(255,255,255,0.7)" }}>Analyst:</strong> data_analyst</span>
+                    </div>
+                    <div style={{ fontSize: "0.625rem", color: "rgba(255,255,255,0.35)", marginTop: "6px" }}>
+                        Password for all: <strong style={{ color: "rgba(255,255,255,0.6)" }}>fleet123</strong>
+                    </div>
+                </div>
             </div>
         </div>
     );

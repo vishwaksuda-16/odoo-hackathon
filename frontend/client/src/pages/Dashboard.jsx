@@ -1,154 +1,170 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Card from "../components/ui/Card";
 import StatusPill from "../components/ui/StatusPill";
 import { vehicleAPI, tripAPI, driverAPI, alertAPI } from "../lib/api";
 
 function Dashboard({ showToast, role }) {
     const [loading, setLoading] = useState(true);
-    const [kpis, setKpis] = useState({ activeFleet: 0, inShop: 0, pendingCargo: 0, driversOnDuty: 0, totalDrivers: 0, totalVehicles: 0 });
+    const [kpis, setKpis] = useState({});
     const [recentTrips, setRecentTrips] = useState([]);
     const [alerts, setAlerts] = useState([]);
 
-    useEffect(() => {
-        let cancelled = false;
-        async function load() {
-            setLoading(true);
-            try {
-                const [vehicleRes, tripRes, driverRes] = await Promise.all([
-                    vehicleAPI.getAll(),
-                    tripAPI.getAll("limit=10"),
-                    driverAPI.getAll(),
-                ]);
+    const load = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [vRes, tRes, dRes, aRes] = await Promise.all([
+                vehicleAPI.getAll(),
+                tripAPI.getAll(),
+                driverAPI.getAll(),
+                alertAPI.getAll().catch(() => ({ alerts: [] })),
+            ]);
+            const vehicles = vRes.vehicles || [];
+            const trips = tRes.trips || [];
+            const drivers = dRes.drivers || [];
+            const alertList = aRes.alerts || [];
 
-                let alertRes = { alerts: [] };
-                try { alertRes = await alertAPI.getAll("resolved=false&limit=10"); } catch { /* alerts may not be accessible */ }
-
-                if (cancelled) return;
-
-                const vehicles = vehicleRes.vehicles || [];
-                const drivers = driverRes.drivers || [];
-                const trips = tripRes.trips || [];
-
-                setKpis({
-                    activeFleet: vehicles.filter((v) => v.status === "on_trip").length,
-                    inShop: vehicles.filter((v) => v.status === "in_shop").length,
-                    pendingCargo: trips.filter((t) => t.status === "draft").length,
-                    driversOnDuty: drivers.filter((d) => d.status === "on_duty" || d.status === "on_trip").length,
-                    totalDrivers: drivers.length,
-                    totalVehicles: vehicles.length,
-                });
-
-                setRecentTrips(trips.slice(0, 5));
-                setAlerts((alertRes.alerts || []).slice(0, 5));
-            } catch (err) {
-                if (!cancelled) showToast("Failed to load dashboard data: " + err.message, "error");
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
+            setKpis({
+                totalVehicles: vehicles.length,
+                available: vehicles.filter((v) => v.status === "available").length,
+                onTrip: vehicles.filter((v) => v.status === "on_trip").length,
+                inShop: vehicles.filter((v) => v.status === "in_shop").length,
+                totalDrivers: drivers.length,
+                onDuty: drivers.filter((d) => d.status === "on_duty").length,
+                totalTrips: trips.length,
+                completed: trips.filter((t) => t.status === "completed").length,
+                criticalAlerts: alertList.filter((a) => a.severity === "critical").length,
+            });
+            setRecentTrips(trips.slice(0, 6));
+            setAlerts(alertList.slice(0, 5));
+        } catch (err) {
+            showToast("Failed to load dashboard: " + err.message, "error");
+        } finally {
+            setLoading(false);
         }
-        load();
-        return () => { cancelled = true; };
     }, [showToast]);
 
-    const ALERT_STYLE = {
-        warning: { bg: "var(--color-warning-bg)", border: "var(--color-warning-border)", text: "#b45309", dot: "#d97706" },
-        critical: { bg: "var(--color-danger-bg)", border: "var(--color-danger-border)", text: "#b91c1c", dot: "#dc2626" },
-        info: { bg: "var(--color-info-bg)", border: "var(--color-info-border)", text: "#0369a1", dot: "#0284c7" },
-    };
-
-    const utilRate = kpis.totalVehicles > 0
-        ? Math.round(((kpis.activeFleet) / kpis.totalVehicles) * 100)
-        : 0;
+    useEffect(() => { load(); }, [load]);
 
     if (loading) {
         return (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "300px", gap: "10px" }}>
-                <span className="ff-spinner"></span>
-                <span style={{ color: "var(--color-text-muted)" }}>Loading dashboard…</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "400px", gap: "12px" }}>
+                <span className="ff-spinner" style={{ width: "28px", height: "28px" }}></span>
+                <span style={{ color: "var(--color-text-muted)", fontSize: "0.9375rem" }}>Loading dashboard…</span>
             </div>
         );
     }
 
     return (
         <div>
-            {/* KPI Cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
-                <Card title="Active Fleet" value={kpis.activeFleet} subtitle={`of ${kpis.totalVehicles} vehicles`} icon="🚛" color="#1d4ed8" />
-                <Card title="Maintenance Alerts" value={kpis.inShop} subtitle="in shop" icon="🔧" color="#d97706" />
-                <Card title="Utilization Rate" value={`${utilRate}%`} subtitle="vehicles on trip" icon="📊" color="#7c3aed" />
-                <Card title="Drivers On Duty" value={kpis.driversOnDuty} subtitle={`of ${kpis.totalDrivers} total`} icon="👤" color="#16a34a" />
+            {/* Welcome */}
+            <div style={{ marginBottom: "24px" }}>
+                <h2 style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: "4px" }}>
+                    Fleet Overview
+                </h2>
+                <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>
+                    Real-time status of your fleet operations
+                </p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: "20px" }}>
+            {/* KPI Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "24px" }}>
+                <Card title="Total Vehicles" value={kpis.totalVehicles} subtitle={`${kpis.available} available`} icon="🚛" color="#6366f1" />
+                <Card title="Active Trips" value={kpis.onTrip} subtitle={`${kpis.completed} completed`} icon="🗺️" color="#10b981" />
+                <Card title="Drivers On Duty" value={kpis.onDuty} subtitle={`${kpis.totalDrivers} total drivers`} icon="👤" color="#f59e0b" />
+                <Card title="Critical Alerts" value={kpis.criticalAlerts} subtitle={`${alerts.length} unresolved`} icon="🔔" color={kpis.criticalAlerts > 0 ? "#ef4444" : "#10b981"} />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
                 {/* Recent Trips */}
-                <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "10px", overflow: "hidden" }}>
+                <div className="ff-card" style={{ overflow: "hidden" }}>
                     <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <h3 style={{ fontSize: "0.9375rem", fontWeight: 700, color: "var(--color-text-primary)" }}>Recent Trips</h3>
-                        <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>Latest</span>
+                        <h3 style={{ fontSize: "0.875rem", fontWeight: 700 }}>Recent Trips</h3>
+                        <span style={{ fontSize: "0.6875rem", color: "var(--color-text-muted)" }}>{recentTrips.length} shown</span>
                     </div>
                     {recentTrips.length === 0 ? (
-                        <div style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>No trips found.</div>
+                        <div style={{ padding: "32px 20px", textAlign: "center", color: "var(--color-text-muted)", fontSize: "0.8125rem" }}>No trips yet.</div>
                     ) : (
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Trip ID</th><th>Vehicle</th><th>Driver</th><th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {recentTrips.map((t) => (
-                                    <tr key={t.id}>
-                                        <td style={{ fontWeight: 600, color: "var(--color-primary)" }}>#{t.id}</td>
-                                        <td style={{ color: "var(--color-text-secondary)", fontSize: "0.8125rem" }}>
-                                            {t.vehicle_name || t.name_model} – {t.license_plate}
-                                        </td>
-                                        <td>{t.driver_name}</td>
-                                        <td><StatusPill status={t.status} /></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                            {recentTrips.map((t) => (
+                                <div
+                                    key={t.id}
+                                    style={{
+                                        padding: "12px 20px",
+                                        borderBottom: "1px solid var(--color-border-light)",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: "12px",
+                                        transition: "background var(--transition-fast)",
+                                    }}
+                                >
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text-primary)" }}>
+                                            {t.vehicle_name || "Vehicle"} · {t.driver_name || "Driver"}
+                                        </div>
+                                        <div style={{ fontSize: "0.6875rem", color: "var(--color-text-muted)", marginTop: "2px" }}>
+                                            {t.cargo_weight_kg} kg · {t.license_plate}
+                                        </div>
+                                    </div>
+                                    <StatusPill status={t.status} />
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
 
-                {/* Alerts Panel */}
-                <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "10px", overflow: "hidden" }}>
-                    <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--color-border)" }}>
-                        <h3 style={{ fontSize: "0.9375rem", fontWeight: 700, color: "var(--color-text-primary)" }}>System Alerts</h3>
-                    </div>
-                    <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                        {alerts.length === 0 ? (
-                            <div style={{ padding: "20px", textAlign: "center", color: "var(--color-text-muted)", fontSize: "0.875rem" }}>
-                                No active alerts. All systems operational.
-                            </div>
-                        ) : (
-                            alerts.map((a) => {
-                                const sev = a.severity || "info";
-                                const s = ALERT_STYLE[sev] || ALERT_STYLE.info;
-                                return (
-                                    <div key={a.id} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: "8px", padding: "10px 12px", display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: s.dot, marginTop: "5px", flexShrink: 0 }} />
-                                        <span style={{ fontSize: "0.8125rem", color: s.text, lineHeight: "1.4" }}>{a.message}</span>
-                                    </div>
-                                );
-                            })
+                {/* Alerts */}
+                <div className="ff-card" style={{ overflow: "hidden" }}>
+                    <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <h3 style={{ fontSize: "0.875rem", fontWeight: 700 }}>System Alerts</h3>
+                        {alerts.length > 0 && (
+                            <span style={{
+                                fontSize: "0.625rem", fontWeight: 700, padding: "2px 8px", borderRadius: "99px",
+                                background: "var(--color-danger-bg)", color: "var(--color-danger)",
+                                border: "1px solid var(--color-danger-border)",
+                            }}>
+                                {alerts.length} ACTIVE
+                            </span>
                         )}
                     </div>
-
-                    {/* Summary stats */}
-                    <div style={{ padding: "12px 16px 16px", borderTop: "1px solid var(--color-border)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                        {[
-                            { label: "Active Fleet", value: kpis.activeFleet },
-                            { label: "In Shop", value: kpis.inShop },
-                            { label: "Utilization", value: `${utilRate}%` },
-                            { label: "On Duty", value: kpis.driversOnDuty },
-                        ].map((s) => (
-                            <div key={s.label} style={{ background: "var(--color-surface-raised)", borderRadius: "6px", padding: "10px 12px" }}>
-                                <div style={{ fontSize: "0.625rem", fontWeight: 600, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{s.label}</div>
-                                <div style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--color-text-primary)", marginTop: "2px" }}>{s.value}</div>
-                            </div>
-                        ))}
-                    </div>
+                    {alerts.length === 0 ? (
+                        <div style={{ padding: "32px 20px", textAlign: "center" }}>
+                            <div style={{ fontSize: "2rem", marginBottom: "8px" }}>✅</div>
+                            <div style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>All systems clear</div>
+                        </div>
+                    ) : (
+                        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                            {alerts.map((a) => (
+                                <div
+                                    key={a.id}
+                                    style={{
+                                        padding: "12px 20px",
+                                        borderBottom: "1px solid var(--color-border-light)",
+                                        borderLeft: `3px solid ${a.severity === "critical" ? "var(--color-danger)" : "var(--color-warning)"}`,
+                                    }}
+                                >
+                                    <div style={{
+                                        display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px",
+                                    }}>
+                                        <span style={{
+                                            fontSize: "0.5625rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em",
+                                            padding: "1px 6px", borderRadius: "3px",
+                                            background: a.severity === "critical" ? "var(--color-danger-bg)" : "var(--color-warning-bg)",
+                                            color: a.severity === "critical" ? "var(--color-danger)" : "var(--color-warning)",
+                                        }}>
+                                            {a.severity}
+                                        </span>
+                                        <span style={{ fontSize: "0.625rem", color: "var(--color-text-muted)" }}>
+                                            {a.alert_type?.replace(/_/g, " ")}
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: "0.75rem", color: "var(--color-text-secondary)", lineHeight: 1.4 }}>
+                                        {a.message?.length > 120 ? a.message.slice(0, 120) + "…" : a.message}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

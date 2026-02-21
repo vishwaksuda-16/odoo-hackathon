@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import "./App.css";
 import Layout from "./components/layout/Layout";
 import { useToast } from "./components/ui/Toast";
+import { authAPI } from "./lib/api";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -96,7 +97,6 @@ function App() {
 
   const handleLogout = useCallback(async () => {
     try {
-      const { authAPI } = await import("./lib/api.js");
       await authAPI.logout();
     } catch { /* best-effort */ }
     clearSession();

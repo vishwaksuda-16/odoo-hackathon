@@ -84,16 +84,16 @@ export async function getVehicleROI(revenuePerKm = 1.5, acquisitionCost = 25000)
             v.name_model,
             v.license_plate,
             v.odometer,
-            ROUND(v.odometer * $1, 2)                                         AS estimated_revenue,
-            COALESCE(SUM(f.fuel_cost), 0) + COALESCE(SUM(m.cost), 0)         AS operational_cost,
+            ROUND(v.odometer * $1::NUMERIC, 2)                                    AS estimated_revenue,
+            COALESCE(SUM(f.fuel_cost), 0) + COALESCE(SUM(m.cost), 0)             AS operational_cost,
             CASE
-                WHEN $2 > 0
+                WHEN $2::NUMERIC > 0
                 THEN ROUND(
-                    ((v.odometer * $1) -
+                    ((v.odometer * $1::NUMERIC) -
                      (COALESCE(SUM(f.fuel_cost), 0) + COALESCE(SUM(m.cost), 0)))
-                    / $2, 4)
+                    / $2::NUMERIC, 4)
                 ELSE NULL
-            END                                                               AS roi
+            END                                                                   AS roi
         FROM vehicles v
         LEFT JOIN fuel_logs f         ON f.vehicle_id = v.id
         LEFT JOIN maintenance_logs m  ON m.vehicle_id = v.id

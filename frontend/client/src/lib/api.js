@@ -137,6 +137,18 @@ export const analyticsAPI = {
 export const alertAPI = {
   getAll: (params = '') => fetcher(`/alerts${params ? '?' + params : ''}`),
   summary: () => fetcher('/alerts/summary'),
+  thresholds: () => fetcher('/alerts/thresholds'),
   acknowledge: (id) => fetcher(`/alerts/${id}/acknowledge`, { method: 'POST' }),
   resolve: (id) => fetcher(`/alerts/${id}/resolve`, { method: 'POST' }),
+  scanOdometer: () => fetcher('/alerts/scan/odometer', { method: 'POST' }),
+  scanPredictive: () => fetcher('/alerts/scan/predictive', { method: 'POST' }),
+};
+
+/* ── Export ────────────────────────────────────────────────── */
+
+export const exportAPI = {
+  financialCSV: () => `${API_URL}/export/financial/csv`,
+  financialPDF: () => `${API_URL}/export/financial/pdf`,
+  payrollCSV: (year, month) => `${API_URL}/export/payroll/csv?year=${year}&month=${month}`,
+  vehicleHealthCSV: () => `${API_URL}/export/vehicle-health/csv`,
 };

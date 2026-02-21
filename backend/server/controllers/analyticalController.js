@@ -128,13 +128,19 @@ export const getMonthlyFinancialReport = async (req, res) => {
 
         const { rows: totals } = await pool.query(`
             SELECT
-                COALESCE(SUM(f.fuel_cost), 0)    AS ytd_fuel_cost,
-                COALESCE(SUM(m.cost), 0)          AS ytd_maint_cost,
-                COALESCE(SUM(f.fuel_cost), 0) +
-                COALESCE(SUM(m.cost), 0)          AS ytd_total_cost
-            FROM fuel_logs f
-            FULL OUTER JOIN maintenance_logs m ON TRUE
-            WHERE EXTRACT(YEAR FROM COALESCE(f.log_date, m.service_date)) = $1
+                COALESCE(f.ytd_fuel_cost, 0)  AS ytd_fuel_cost,
+                COALESCE(m.ytd_maint_cost, 0) AS ytd_maint_cost,
+                COALESCE(f.ytd_fuel_cost, 0) + COALESCE(m.ytd_maint_cost, 0) AS ytd_total_cost
+            FROM (
+                SELECT SUM(fuel_cost) AS ytd_fuel_cost
+                FROM fuel_logs
+                WHERE EXTRACT(YEAR FROM log_date) = $1
+            ) f
+            CROSS JOIN (
+                SELECT SUM(cost) AS ytd_maint_cost
+                FROM maintenance_logs
+                WHERE EXTRACT(YEAR FROM service_date) = $1
+            ) m
         `, [year]);
 
         return res.json({
@@ -161,10 +167,17 @@ export const getFinancialReport = async (req, res) => {
             getVehicleROI(),
         ]);
 
-        const merged = fuelData.map((f, i) => ({
+        // Build lookup maps by vehicle_id for safe merge
+        const costMap = Object.fromEntries(costData.map(c => [c.vehicle_id, c]));
+        const roiMap = Object.fromEntries(roi.map(r => [r.id, r]));
+
+        const merged = fuelData.map(f => ({
             ...f,
-            cost_per_km: costData[i]?.cost_per_km ?? null,
-            roi: roi[i]?.roi ?? null,
+            total_fuel_cost: costMap[f.vehicle_id]?.total_fuel_cost ?? 0,
+            total_maint_cost: costMap[f.vehicle_id]?.total_maint_cost ?? 0,
+            total_cost: costMap[f.vehicle_id]?.total_cost ?? 0,
+            cost_per_km: costMap[f.vehicle_id]?.cost_per_km ?? null,
+            roi: roiMap[f.vehicle_id]?.roi ?? null,
         }));
 
         return res.json({ success: true, report: merged });

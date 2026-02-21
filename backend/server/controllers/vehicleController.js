@@ -25,7 +25,7 @@ export const createVehicle = async (req, res) => {
 export const getAllVehicles = async (req, res) => {
   const { status, vehicle_class, region, include_retired = 'false' } = req.query;
 
-  const conditions = [];
+  const conditions = ['deleted_at IS NULL'];
   const params = [];
 
   if (include_retired !== 'true') {
